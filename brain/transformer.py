@@ -7,7 +7,7 @@ class AIConfig:
     """Configuration for the first TKC-AI prototype."""
 
     def __init__(self):
-        self.vocab_size = 8000
+        self.vocab_size = 259
         self.max_seq_len = 512
         self.d_model = 256
         self.n_heads = 8
