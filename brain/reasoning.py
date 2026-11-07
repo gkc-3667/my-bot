@@ -9,6 +9,8 @@ import operator
 import re
 from dataclasses import dataclass
 
+from brain.reasoning_extra import solve_extended_question
+
 
 @dataclass(frozen=True)
 class ReasoningResult:
@@ -641,6 +643,9 @@ def solve_question(question):
     text = str(question).strip()
     if not text:
         return None
+    extended = solve_extended_question(text)
+    if extended is not None:
+        return extended
     solvers = (
         _solve_linear_equation,
         _solve_word_problem,
