@@ -19,6 +19,18 @@ class ArithmeticReasoningTests(unittest.TestCase):
             safe_calculate("10 / 0")
 
 
+class LinearEquationTests(unittest.TestCase):
+    def test_solves_and_substitutes_linear_equation(self):
+        result = solve_question("Giải phương trình 2x + 3 = 11.")
+        self.assertIsNotNone(result)
+        self.assertEqual(result.answer, "Nghiệm là x = 4.")
+        self.assertIn("vế trái = 11", result.steps[-1])
+
+    def test_does_not_claim_to_solve_quadratic_equation(self):
+        result = solve_question("Giải phương trình x^2 = 4.")
+        self.assertIsNone(result)
+
+
 class WordProblemTests(unittest.TestCase):
     def test_multiplication_word_problem(self):
         result = solve_question(
