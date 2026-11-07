@@ -83,7 +83,10 @@ def handle_learning_command(agent, question):
         print(f"- Tìm kiếm web: {web_state}.")
         print(f"- Ghi chú đã dạy: {memory_count}.")
         print(f"- Ví dụ chờ fine-tune: {example_count}.")
-        print("- Viết mã: sinh mã bằng mô hình đã huấn luyện; chưa có sandbox thực thi.")
+        if agent.model is None:
+            print("- Viết mã: chưa thể sinh mã tổng quát vì chưa có checkpoint ngôn ngữ.")
+        else:
+            print("- Viết mã: mô hình có thể tạo mã; chưa có sandbox thực thi hoặc kiểm thử tự động.")
         return True
 
     if question in {"/help", "help"}:
@@ -170,7 +173,6 @@ def main():
         return
 
     print("Lệnh: /status, /help, /teach Chủ đề | Nội dung | Nguồn, /example Câu hỏi | Câu trả lời")
-    print("Lệnh thêm ví dụ học: /example Câu hỏi | Câu trả lời")
     while True:
         try:
             question = input("\nBạn: ").strip()
