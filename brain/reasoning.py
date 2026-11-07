@@ -262,9 +262,13 @@ def _solve_syllogism(text):
     if category_word != subject_word:
         return None
 
-    question_match = re.search(
-        r"(.+?)\s+có\s+phải\s+là\s+(.+?)\s+không",
-        text.casefold(),
+    question_statement = next(
+        (statement.strip() for statement in reversed(statements) if statement.strip()),
+        "",
+    )
+    question_match = re.match(
+        r"^(.+?)\s+có\s+phải\s+là\s+(.+?)\s+không$",
+        question_statement,
     )
     if not question_match:
         return None
