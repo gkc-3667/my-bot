@@ -58,6 +58,7 @@ def classify_task(question):
             "so sánh", "tại sao", "vì sao", "chứng minh", "suy luận",
             "tính", "phương trình", "giải pt", "dãy số", "quy luật",
             "mọi ", "nếu ", "chia cho", "số chẵn", "số lẻ", "ngày mai",
+            "trung bình", "phần trăm", "tăng bao nhiêu", "giảm bao nhiêu",
         )
     ):
         return "reasoning"
@@ -69,7 +70,10 @@ def needs_web_search(question):
     explicit = any(term in text for term in WEB_TERMS)
     asks_to_search = any(
         term in text
-        for term in ("tìm kiếm", "tìm giúp", "tra cứu", "search the web", "look up")
+        for term in (
+            "tìm kiếm", "tìm giúp", "tìm thông tin", "tra cứu",
+            "kiểm tra thông tin", "search the web", "look up",
+        )
     )
     return explicit or asks_to_search
 
