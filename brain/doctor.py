@@ -1,15 +1,16 @@
-"""Run local diagnostics for the TKC-AI environment and project readiness."""
+"""Run local diagnostics for GKC-AI environment and model readiness."""
 import argparse
 import importlib.util
 import platform
 from pathlib import Path
 
 from brain.knowledge import KnowledgeBase
+from brain.llm import OpenAICompatibleProvider
 from brain.reasoning import solve_question
 
 
 def run_diagnostics(
-    checkpoint="checkpoints/tkc_ai_instruct.pt",
+    checkpoint="checkpoints/gkc_ai_instruct.pt",
     corpus_dir="data/training_data",
     memory_path="data/knowledge.sqlite3",
 ):
@@ -34,11 +35,38 @@ def run_diagnostics(
         add("PyTorch", False, "Install the PyTorch version appropriate for this machine.", "error")
 
     checkpoint_path = Path(checkpoint)
+    checkpoint_ready = checkpoint_path.is_file()
     add(
-        "Language-model checkpoint",
-        checkpoint_path.is_file(),
-        str(checkpoint_path) if checkpoint_path.is_file() else "Not found; general language generation is disabled.",
-        "warning",
+        "Local language-model checkpoint",
+        checkpoint_ready,
+        str(checkpoint_path) if checkpoint_ready else "Not found; the scratch Transformer cannot answer general questions.",
+        "info" if checkpoint_ready else "warning",
+    )
+
+    provider = None
+    try:
+        provider = OpenAICompatibleProvider.from_env()
+        add(
+            "External language-model API",
+            provider is not None,
+            (
+                f"Configured model '{provider.model}' at {provider.base_url}; live connectivity has not been tested."
+                if provider is not None
+                else "GKC_AI_MODEL is not set; configure an OpenAI-compatible model to enable general chat."
+            ),
+            "info" if provider is not None else "warning",
+        )
+    except ValueError as error:
+        add("External language-model API", False, str(error), "error")
+
+    model_ready = checkpoint_ready or provider is not None
+    add(
+        "General language model configured",
+        model_ready,
+        "A local checkpoint or external model is configured."
+        if model_ready
+        else "No trained local checkpoint or external language model is configured.",
+        "info" if model_ready else "warning",
     )
 
     corpus_path = Path(corpus_dir)
@@ -96,19 +124,19 @@ def run_diagnostics(
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Check TKC-AI capabilities and local prerequisites.")
-    parser.add_argument("--checkpoint", default="checkpoints/tkc_ai_instruct.pt")
+    parser = argparse.ArgumentParser(description="Check GKC-AI capabilities and local prerequisites.")
+    parser.add_argument("--checkpoint", default="checkpoints/gkc_ai_instruct.pt")
     parser.add_argument("--corpus-dir", default="data/training_data")
     parser.add_argument("--memory", default="data/knowledge.sqlite3")
     parser.add_argument(
         "--strict",
         action="store_true",
-        help="Exit with status 1 if the trained language checkpoint is missing or any error check fails.",
+        help="Exit with status 1 if no general language model is configured or any error check fails.",
     )
     args = parser.parse_args()
 
     checks = run_diagnostics(args.checkpoint, args.corpus_dir, args.memory)
-    print("TKC-AI DIAGNOSTICS")
+    print("GKC-AI DIAGNOSTICS")
     print("=" * 56)
     for check in checks:
         status = "OK" if check["ok"] else (
@@ -117,11 +145,10 @@ def main():
         print(f"[{status}] {check['name']}: {check['detail']}")
     print("=" * 56)
     print("Rule-based reasoning can solve only the patterns it explicitly supports.")
-    print("A trained checkpoint is required for general language generation.")
-    if args.strict and any(
-        (not check["ok"] and check["level"] == "error")
-        or (check["name"] == "Language-model checkpoint" and not check["ok"])
-        for check in checks
+    print("A trained local checkpoint or configured external language model is required for general language generation.")
+    if args.strict and (
+        not any(check["name"] == "General language model configured" and check["ok"] for check in checks)
+        or any(not check["ok"] and check["level"] == "error" for check in checks)
     ):
         raise SystemExit(1)
 
