@@ -345,6 +345,39 @@ def _solve_conditional(text):
     )
 
 
+def _solve_parity(text):
+    normalized = text.casefold()
+    match = re.search(r"chia\s+cho\s+2\s+dư\s+([01])", normalized)
+    if not match:
+        return None
+    remainder = int(match.group(1))
+    if "số chẵn" in normalized:
+        is_even = remainder == 0
+        answer = (
+            "Có. Số chia cho 2 dư 0 là số chẵn."
+            if is_even
+            else "Không. Số chia cho 2 dư 1 là số lẻ."
+        )
+    elif "số lẻ" in normalized:
+        is_odd = remainder == 1
+        answer = (
+            "Có. Số chia cho 2 dư 1 là số lẻ."
+            if is_odd
+            else "Không. Số chia cho 2 dư 0 là số chẵn."
+        )
+    else:
+        return None
+    return ReasoningResult(
+        answer=answer,
+        method="Suy luận tính chẵn lẻ bằng số dư",
+        steps=(
+            f"Dữ kiện: khi chia cho 2, số dư là {remainder}.",
+            "Số chẵn chia cho 2 dư 0; số lẻ chia cho 2 dư 1.",
+            answer,
+        ),
+    )
+
+
 def _solve_weekday(text):
     normalized = re.sub(r"\s+", " ", text.casefold())
     match = re.search(
@@ -479,6 +512,7 @@ def solve_question(question):
         _solve_conditional,
         _solve_sequence,
         _solve_weekday,
+        _solve_parity,
         _solve_arithmetic,
     )
     for solver in solvers:
