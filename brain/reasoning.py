@@ -269,6 +269,119 @@ def _solve_syllogism(text):
     )
 
 
+def _normalize_proposition(value):
+    """Normalize a short proposition without changing its logical meaning."""
+    return re.sub(r"\s+", " ", str(value).strip().casefold()).strip(" \t\r\n.,;:")
+
+
+def _solve_conditional_chain(text):
+    """Apply forward chaining to two or more explicit Vietnamese implications.
+
+    This intentionally supports only exact, positive propositions. It never
+    infers a rule's antecedent from its consequent (the converse fallacy).
+    """
+    raw_sentences = re.findall(r"[^.!?;\n]+[.!?;]?", str(text).casefold())
+    rules = []
+    facts = set()
+    target = None
+
+    question_markers = (
+        "có thể kết luận", "có suy ra", "suy ra gì", "kết luận gì",
+        "có chắc chắn", "có phải", "vì sao", "tại sao",
+    )
+
+    for raw_sentence in raw_sentences:
+        sentence = raw_sentence.strip().strip(".!?;").strip()
+        if not sentence:
+            continue
+
+        rule_match = re.fullmatch(r"nếu\s+(.+?)\s+thì\s+(.+)", sentence)
+        if rule_match:
+            antecedent = _normalize_proposition(rule_match.group(1))
+            consequent = _normalize_proposition(rule_match.group(2))
+            if antecedent and consequent and antecedent != consequent:
+                rules.append((antecedent, consequent))
+            continue
+
+        target_match = re.fullmatch(
+            r"(?:có thể kết luận|có suy ra|suy ra)\s+(?:được\s+)?(.+?)\s+không",
+            sentence,
+        )
+        is_question = "?" in raw_sentence or any(
+            marker in sentence for marker in question_markers
+        )
+        if is_question:
+            if target_match:
+                target = _normalize_proposition(target_match.group(1))
+            continue
+
+        fact = _normalize_proposition(sentence)
+        if fact:
+            facts.add(fact)
+
+    # Keep the existing single-rule solver responsible for its established
+    # modus-tollens / affirming-the-consequent examples.
+    if len(rules) < 2 or not facts:
+        return None
+
+    known = set(facts)
+    derived = []
+    # Each rule can add its consequent at most once, so this bound also
+    # guarantees termination when the rule set contains cycles.
+    for _ in range(len(rules) + 1):
+        changed = False
+        for antecedent, consequent in rules:
+            if antecedent in known and consequent not in known:
+                known.add(consequent)
+                derived.append((antecedent, consequent))
+                changed = True
+        if not changed:
+            break
+
+    steps = [
+        (
+            f"Từ dữ kiện '{antecedent}' và quy tắc "
+            f"'nếu {antecedent} thì {consequent}', suy ra '{consequent}'."
+        )
+        for antecedent, consequent in derived
+    ]
+
+    if target is not None:
+        if target in known:
+            if target in facts:
+                steps.insert(0, f"'{target}' đã được nêu trực tiếp như một dữ kiện.")
+            return ReasoningResult(
+                answer=f"Có thể kết luận '{target}' từ các tiền đề đã cho.",
+                method="Suy diễn chuỗi bằng luật kéo theo (forward chaining)",
+                steps=tuple(steps),
+            )
+        rule_steps = [
+            f"Quy tắc: nếu {antecedent} thì {consequent}."
+            for antecedent, consequent in rules
+        ]
+        rule_steps.extend(f"Dữ kiện: {fact}." for fact in sorted(facts))
+        return ReasoningResult(
+            answer=(
+                f"Chưa đủ dữ kiện để suy ra '{target}'. "
+                "Không thể đảo chiều một quy tắc nếu chưa có tiền đề phù hợp."
+            ),
+            method="Kiểm tra khả năng suy diễn chuỗi",
+            steps=tuple(rule_steps + steps),
+            confidence=1.0,
+        )
+
+    if not derived:
+        return None
+
+    conclusions = list(dict.fromkeys(consequent for _, consequent in derived))
+    answer = "Có thể suy ra: " + "; ".join(conclusions) + "."
+    return ReasoningResult(
+        answer=answer,
+        method="Suy diễn chuỗi bằng luật kéo theo (forward chaining)",
+        steps=tuple(steps),
+    )
+
+
 def _solve_conditional(text):
     normalized = text.casefold()
     match = re.search(r"nếu\s+(.+?)\s+thì\s+(.+?)(?:[.!?]|$)", normalized)
@@ -453,6 +566,7 @@ def solve_question(question):
         _solve_linear_equation,
         _solve_word_problem,
         _solve_syllogism,
+        _solve_conditional_chain,
         _solve_conditional,
         _solve_sequence,
         _solve_weekday,
