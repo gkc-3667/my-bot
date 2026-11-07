@@ -1,5 +1,6 @@
-"""Interactive chat entry point for the staged TKC-AI agent."""
+"""Interactive chat entry point for TKC-AI, including pretraining fallback."""
 import argparse
+from pathlib import Path
 
 import torch
 
@@ -9,8 +10,17 @@ from brain.transformer import AIConfig, TKCAI
 
 
 def load_agent(checkpoint_path, memory_path):
+    memory = KnowledgeBase(memory_path)
+    checkpoint = Path(checkpoint_path)
+    if not checkpoint.is_file():
+        return ResearchAgent(
+            model=None,
+            device="cpu",
+            memory=memory,
+        )
+
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    state = torch.load(checkpoint_path, map_location=device, weights_only=True)
+    state = torch.load(checkpoint, map_location=device, weights_only=True)
     if "model" not in state or "config" not in state:
         raise ValueError("Checkpoint must contain model and config entries.")
 
@@ -25,13 +35,19 @@ def load_agent(checkpoint_path, memory_path):
     return ResearchAgent(
         model=model,
         device=device,
-        memory=KnowledgeBase(memory_path),
+        memory=memory,
         max_search_results=5,
     )
 
 
 def print_response(response):
-    print("\n" + (response.answer or "[Mô hình chưa tạo được câu trả lời.]"))
+    print("\n" + (response.answer or "[Chưa có câu trả lời.]"))
+    if response.reasoning_method:
+        print(f"\nPhương pháp suy luận: {response.reasoning_method}")
+        print(f"Độ tin cậy của bộ giải quy tắc: {response.reasoning_confidence:.0%}")
+        print("Các bước có thể kiểm tra:")
+        for index, step in enumerate(response.reasoning_steps, 1):
+            print(f"  {index}. {step}")
     if response.sources:
         print("\nNguồn tham khảo:")
         for index, source in enumerate(response.sources, 1):
@@ -44,12 +60,12 @@ def print_response(response):
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Chat with TKC-AI using planning, web search, memory and self-review."
+        description="Chat with TKC-AI using symbolic reasoning, web search and learned memory."
     )
     parser.add_argument(
         "--checkpoint",
         default="checkpoints/tkc_ai_instruct.pt",
-        help="A checkpoint trained by this project.",
+        help="A checkpoint trained by this project. Missing checkpoint enables tool-only mode.",
     )
     parser.add_argument(
         "--memory",
@@ -62,17 +78,24 @@ def main():
 
     try:
         agent = load_agent(args.checkpoint, args.memory)
-    except FileNotFoundError:
-        parser.error(
-            f"Checkpoint not found: {args.checkpoint}. "
-            "Train TKC-AI from scratch before starting chat."
+    except FileNotFoundError as error:
+        parser.error(str(error))
+    except (ValueError, RuntimeError, KeyError) as error:
+        parser.error(f"Cannot load checkpoint: {error}")
+
+    if agent.model is None:
+        print(
+            "TKC-AI đang chạy chế độ suy luận quy tắc + bộ nhớ + tra cứu web. "
+            "Chưa có checkpoint ngôn ngữ đã huấn luyện; các câu hỏi tổng quát "
+            "sẽ được báo rõ là ngoài khả năng hiện tại."
         )
+    else:
+        print("TKC-AI đã nạp checkpoint. Có thể nhập câu hỏi hoặc gõ 'thoát'.")
 
     if args.question:
         print_response(agent.reply(args.question, args.max_new_tokens))
         return
 
-    print("TKC-AI: nhập câu hỏi; gõ 'thoát' để kết thúc.")
     while True:
         try:
             question = input("\nBạn: ").strip()
