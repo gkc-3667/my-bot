@@ -17,7 +17,7 @@ class SearchResult:
 class DDGSSearchProvider:
     """Search the public web through the optional ddgs package."""
 
-    def __init__(self, region="vn-vn", safesearch="moderate", timeout=10):
+    def __init__(self, region="vn-vi", safesearch="moderate", timeout=10):
         try:
             from ddgs import DDGS
         except ImportError as error:
