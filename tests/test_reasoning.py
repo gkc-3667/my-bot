@@ -18,6 +18,9 @@ class ArithmeticReasoningTests(unittest.TestCase):
         with self.assertRaises(ZeroDivisionError):
             safe_calculate("10 / 0")
 
+    def test_dates_are_not_mistaken_for_division(self):
+        self.assertIsNone(solve_question("Sự kiện diễn ra ngày 2026/11/07 phải không?"))
+
 
 class LinearEquationTests(unittest.TestCase):
     def test_solves_and_substitutes_linear_equation(self):
@@ -29,6 +32,11 @@ class LinearEquationTests(unittest.TestCase):
     def test_does_not_claim_to_solve_quadratic_equation(self):
         result = solve_question("Giải phương trình x^2 = 4.")
         self.assertIsNone(result)
+
+    def test_solves_parenthesized_linear_equation(self):
+        result = solve_question("Giải phương trình 2(x + 1) = 6.")
+        self.assertIsNotNone(result)
+        self.assertEqual(result.answer, "Nghiệm là x = 2.")
 
 
 class WordProblemTests(unittest.TestCase):
@@ -50,6 +58,14 @@ class LogicReasoningTests(unittest.TestCase):
     def test_syllogism(self):
         result = solve_question(
             "Mọi con mèo đều là động vật. Miu là mèo. Miu có phải là động vật không?"
+        )
+        self.assertIsNotNone(result)
+        self.assertTrue(result.answer.startswith("Có."))
+
+    def test_syllogism_with_multiword_subject(self):
+        result = solve_question(
+            "Mọi loài chim đều là động vật. Chim cánh cụt là chim. "
+            "Chim cánh cụt có phải là động vật không?"
         )
         self.assertIsNotNone(result)
         self.assertTrue(result.answer.startswith("Có."))
