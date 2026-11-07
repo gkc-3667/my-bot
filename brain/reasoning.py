@@ -197,7 +197,7 @@ def _solve_sequence(text):
         return None
     values = [
         int(value)
-        for value in re.findall(r"(?<![\w])\d+(?![\w])", normalized)
+        for value in re.findall(r"(?<![\w])-?\d+(?![\w])", normalized)
     ]
     if len(values) < 3 or len(values) > 12:
         return None
