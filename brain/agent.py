@@ -122,7 +122,7 @@ class ResearchAgent:
     @property
     def language_model_name(self):
         if self.llm_provider is not None:
-            return getattr(self.llm_provider, "model", "API-compatible provider")
+            return getattr(self.llm_provider, "model", "local Ollama model")
         return "GKC-AI local checkpoint" if self.model is not None else ""
 
     def _complete(self, prompt, max_new_tokens):
@@ -225,7 +225,7 @@ class ResearchAgent:
                 for item in memory_items
             )
 
-        # A capable external or local OpenAI-compatible model handles open-ended
+        # A capable locally hosted open-source model handles open-ended
         # language tasks. Keep the symbolic solver first for cases it can prove.
         if self.llm_provider is not None:
             mode_instruction = {
