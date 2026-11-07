@@ -84,6 +84,12 @@ class LogicReasoningTests(unittest.TestCase):
         self.assertIsNotNone(result)
         self.assertIn("không xảy ra", result.answer)
 
+    def test_conditional_is_not_used_for_unrelated_question(self):
+        result = solve_question(
+            "Nếu trời mưa thì đường ướt. Đường đang ướt. Mình nên mang giày gì?"
+        )
+        self.assertIsNone(result)
+
     def test_parity_from_remainder(self):
         result = solve_question(
             "Một số chia cho 2 dư 1. Số đó có phải số chẵn không?"
