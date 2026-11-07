@@ -40,6 +40,37 @@ def load_agent(checkpoint_path, memory_path):
     )
 
 
+def handle_learning_command(agent, question):
+    """Handle explicit, reviewable teaching commands in interactive chat."""
+    if question.startswith("/teach "):
+        payload = question[len("/teach "):]
+        topic, separator, fact = payload.partition("|")
+        if not separator or not fact.strip():
+            print("Cách dùng: /teach Chủ đề | Nội dung đã kiểm chứng")
+            return True
+        item_id = agent.memory.add(fact.strip(), topic=topic.strip())
+        print(f"Đã lưu ghi chú #{item_id} vào bộ nhớ truy xuất.")
+        print("Ghi chú này chưa cập nhật trọng số mô hình.")
+        return True
+
+    if question.startswith("/example "):
+        payload = question[len("/example "):]
+        prompt, separator, answer = payload.partition("|")
+        if not separator or not prompt.strip() or not answer.strip():
+            print("Cách dùng: /example Câu hỏi | Câu trả lời đã kiểm chứng")
+            return True
+        added = agent.memory.add_training_example(
+            prompt.strip(), answer.strip(), "data/learned_examples.jsonl"
+        )
+        if added:
+            print("Đã lưu ví dụ vào data/learned_examples.jsonl.")
+            print("Mô hình chỉ học ví dụ sau lần fine-tune tiếp theo.")
+        else:
+            print("Ví dụ này đã tồn tại; không lưu trùng.")
+        return True
+    return False
+
+
 def print_response(response):
     print("\n" + (response.answer or "[Chưa có câu trả lời.]"))
     if response.reasoning_method:
@@ -93,9 +124,12 @@ def main():
         print("TKC-AI đã nạp checkpoint. Có thể nhập câu hỏi hoặc gõ 'thoát'.")
 
     if args.question:
-        print_response(agent.reply(args.question, args.max_new_tokens))
+        if not handle_learning_command(agent, args.question):
+            print_response(agent.reply(args.question, args.max_new_tokens))
         return
 
+    print("Lệnh dạy: /teach Chủ đề | Nội dung")
+    print("Lệnh thêm ví dụ học: /example Câu hỏi | Câu trả lời")
     while True:
         try:
             question = input("\nBạn: ").strip()
@@ -106,6 +140,8 @@ def main():
             print("TKC-AI: Tạm biệt.")
             break
         if not question:
+            continue
+        if handle_learning_command(agent, question):
             continue
         try:
             print_response(agent.reply(question, args.max_new_tokens))
