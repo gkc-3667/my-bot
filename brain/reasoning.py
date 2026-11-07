@@ -429,7 +429,7 @@ def _solve_conditional(text):
 
     # Inspect the first statement after the conditional, not the repeated
     # consequent in the conditional premise itself.
-    remainder = normalized[match.end():].strip()
+    remainder = normalized[match.end():].lstrip(" .!?;\n\t")
     observation_parts = re.split(r"[.!?;\n]+", remainder, maxsplit=1)
     observation = observation_parts[0].strip()
     follow_up = observation_parts[1].strip() if len(observation_parts) > 1 else ""
