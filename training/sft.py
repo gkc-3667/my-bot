@@ -16,27 +16,58 @@ from brain.tokenizer import ByteTokenizer, EOS_ID, PAD_ID
 from brain.transformer import AIConfig, TKCAI
 
 
-def load_examples(path, tokenizer, max_seq_len):
+def load_examples(paths, tokenizer, max_seq_len):
+    if isinstance(paths, (str, Path)):
+        paths = [paths]
+
     examples = []
-    for line_number, line in enumerate(Path(path).read_text(encoding="utf-8").splitlines(), 1):
-        if not line.strip():
-            continue
-        row = json.loads(line)
-        if not isinstance(row.get("prompt"), str) or not isinstance(row.get("answer"), str):
-            raise ValueError(f"Line {line_number}: expected string prompt and answer")
-        prompt = "Người dùng: " + row["prompt"].strip() + "\nTrợ lý:"
-        prompt_ids = tokenizer.encode(prompt, add_special_tokens=False)
-        answer_ids = tokenizer.encode(" " + row["answer"].strip(), add_special_tokens=False) + [EOS_ID]
-        if not answer_ids or len(answer_ids) >= max_seq_len:
-            raise ValueError(f"Line {line_number}: answer is too long for max_seq_len")
-        # Keep the complete answer and the most recent part of a long prompt.
-        prompt_ids = prompt_ids[-(max_seq_len - len(answer_ids)):]
-        input_ids = prompt_ids + answer_ids
-        labels = [-100] * len(prompt_ids) + answer_ids
-        examples.append((torch.tensor(input_ids, dtype=torch.long),
-                         torch.tensor(labels, dtype=torch.long)))
+    for path in paths:
+        path = Path(path)
+        if not path.is_file():
+            raise FileNotFoundError(f"Training dataset not found: {path}")
+        for line_number, line in enumerate(
+            path.read_text(encoding="utf-8").splitlines(), 1
+        ):
+            if not line.strip():
+                continue
+            try:
+                row = json.loads(line)
+            except json.JSONDecodeError as error:
+                raise ValueError(
+                    f"{path}, line {line_number}: invalid JSON: {error}"
+                ) from error
+            if (
+                not isinstance(row, dict)
+                or not isinstance(row.get("prompt"), str)
+                or not isinstance(row.get("answer"), str)
+            ):
+                raise ValueError(
+                    f"{path}, line {line_number}: expected string prompt and answer"
+                )
+            prompt = "Người dùng: " + row["prompt"].strip() + "\nTrợ lý:"
+            prompt_ids = tokenizer.encode(prompt, add_special_tokens=False)
+            answer_ids = (
+                tokenizer.encode(" " + row["answer"].strip(), add_special_tokens=False)
+                + [EOS_ID]
+            )
+            if not answer_ids or len(answer_ids) >= max_seq_len:
+                raise ValueError(
+                    f"{path}, line {line_number}: answer is too long for max_seq_len"
+                )
+            prompt_ids = prompt_ids[-(max_seq_len - len(answer_ids)):]
+            input_ids = prompt_ids + answer_ids
+            labels = [-100] * len(prompt_ids) + answer_ids
+            examples.append(
+                (
+                    torch.tensor(input_ids, dtype=torch.long),
+                    torch.tensor(labels, dtype=torch.long),
+                )
+            )
+
     if len(examples) < 2:
-        raise ValueError("Need at least two valid JSONL examples for train/validation.")
+        raise ValueError(
+            "Need at least two valid JSONL examples across the selected datasets."
+        )
     return examples
 
 
@@ -63,7 +94,12 @@ def evaluate(model, examples, indices, batch_size, device):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--checkpoint", default="checkpoints/tkc_ai_latest.pt")
-    parser.add_argument("--data", default="data/reasoning_examples.jsonl")
+    parser.add_argument(
+        "--data",
+        nargs="+",
+        default=["data/reasoning_examples.jsonl"],
+        help="One or more JSONL datasets containing prompt and answer fields.",
+    )
     parser.add_argument("--output", default="checkpoints/tkc_ai_instruct.pt")
     parser.add_argument("--steps", type=int, default=300)
     parser.add_argument("--batch-size", type=int, default=4)
@@ -77,7 +113,7 @@ def main():
     random.seed(args.seed)
     torch.manual_seed(args.seed)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    state = torch.load(args.checkpoint, map_location=device, weights_only=False)
+    state = torch.load(args.checkpoint, map_location=device, weights_only=True)
     config = AIConfig()
     for key, value in state["config"].items():
         setattr(config, key, value)
@@ -90,9 +126,17 @@ def main():
 
     model = TKCAI(config).to(device)
     model.load_state_dict(state["model"])
-    optimizer = torch.optim.AdamW(model.parameters(), lr=args.lr, weight_decay=0.01)
-    print(f"Device: {device}; examples: {len(examples)}; train: {len(train_ids)}; validation: {len(val_ids)}")
-    print("Instruction tuning an existing TKC-AI checkpoint; prompt tokens are excluded from loss.")
+    optimizer = torch.optim.AdamW(
+        model.parameters(), lr=args.lr, weight_decay=0.01
+    )
+    print(
+        f"Device: {device}; examples: {len(examples)}; "
+        f"train: {len(train_ids)}; validation: {len(val_ids)}"
+    )
+    print(
+        "Instruction tuning an existing TKC-AI checkpoint; "
+        "prompt tokens are excluded from loss."
+    )
 
     model.train()
     for step in range(1, args.steps + 1):
@@ -104,18 +148,26 @@ def main():
         torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
         optimizer.step()
         if step == 1 or step % args.eval_every == 0 or step == args.steps:
-            val_loss = evaluate(model, examples, val_ids, args.batch_size, device)
-            print(f"step {step}/{args.steps} train_loss={loss.item():.4f} val_loss={val_loss:.4f}")
+            val_loss = evaluate(
+                model, examples, val_ids, args.batch_size, device
+            )
+            print(
+                f"step {step}/{args.steps} "
+                f"train_loss={loss.item():.4f} val_loss={val_loss:.4f}"
+            )
             output = Path(args.output)
             output.parent.mkdir(parents=True, exist_ok=True)
-            torch.save({
-                "model": model.state_dict(),
-                "config": vars(config),
-                "step": step,
-                "validation_loss": val_loss,
-                "training_stage": "instruction_tuning",
-                "base_checkpoint": str(args.checkpoint),
-            }, output)
+            torch.save(
+                {
+                    "model": model.state_dict(),
+                    "config": vars(config),
+                    "step": step,
+                    "validation_loss": val_loss,
+                    "training_stage": "instruction_tuning",
+                    "base_checkpoint": str(args.checkpoint),
+                },
+                output,
+            )
 
 
 if __name__ == "__main__":
