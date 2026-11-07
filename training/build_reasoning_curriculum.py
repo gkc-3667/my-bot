@@ -119,6 +119,19 @@ def build_examples(count_per_type=100, seed=42):
             f"{consequent.capitalize()} không. Có thể kết luận gì?"
         )
 
+        first, second, third = rng.choice(
+            (
+                ("trời mưa", "đường ướt", "xe dễ trượt"),
+                ("đèn bật", "phòng sáng", "mọi người nhìn rõ"),
+                ("máy hết pin", "máy tắt", "không thể gọi điện"),
+            )
+        )
+        add(
+            f"Nếu {first} thì {second}. "
+            f"Nếu {second} thì {third}. "
+            f"{first.capitalize()}. Có thể kết luận gì?"
+        )
+
         remainder = rng.randrange(2)
         add(
             f"Một số chia cho 2 dư {remainder}. "
