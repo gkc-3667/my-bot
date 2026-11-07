@@ -19,8 +19,8 @@ The repository does not use pretrained model weights.
 - [x] Curated Q&A examples saved for later supervised fine-tuning
 - [x] Code-writing and tutoring response modes
 - [x] Interactive chat entry point and EOS-aware generation
-- [x] OpenAI-compatible model provider with environment-based credentials
-- [x] Multi-turn API chat context with an in-session reset command
+- [x] Native local Ollama model provider; no external AI API
+- [x] Multi-turn local-model chat context with an in-session reset command
 - [x] Held-out reasoning smoke set and an exact-answer evaluation script
 - [x] GitHub Actions workflow for running unit tests
 - [ ] Train a more efficient BPE tokenizer from our own corpus
@@ -47,7 +47,7 @@ brain/
   tokenizer.py     # UTF-8 byte tokenizer (IDs 0..255, special IDs 256..258)
   generate.py      # safe checkpoint loading and EOS-aware generation
   agent.py         # staged reasoning, retrieval, memory and response orchestration
-  llm.py           # OpenAI-compatible hosted/local chat model client
+  llm.py           # native local Ollama chat model client
   reasoning.py     # deterministic reasoning, conditional chains and checkable derivations
   reasoning_extra.py # percentage, average, comparison and ratio solvers
   doctor.py        # inspect model readiness and local capabilities
@@ -155,32 +155,30 @@ python -m brain.teach --prompt "Python dùng gì để xác định khối lện
 
 Important: a saved fact is retrieved as external memory; it does not change model weights. The `/status` command reports whether a checkpoint is loaded, whether web search is configured, and how many notes and supervised examples are stored. A saved Q&A example changes model behavior only after it is included in a later SFT run. Review answers and sources before teaching them.
 
-## Connect a capable language model (recommended)
+## Run the conversation model locally (no external AI API)
 
-The experimental Transformer in this repository is not trained enough for general
-conversation. GKC-AI can instead use any service that implements the OpenAI-compatible
-`/v1/chat/completions` API. This includes hosted model providers and local inference
-servers. This is an inference connection, not a claim that the repository's scratch
-Transformer has learned those capabilities.
+GKC-AI is designed to use an open-source model served by a local Ollama process.
+The application sends chat requests only to the local Ollama endpoint at
+`http://127.0.0.1:11434/api/chat`. It does not require an OpenAI account,
+hosted AI provider, external AI API key, or remote inference service.
 
-Configure these process environment variables (never commit real credentials):
+Configure these environment variables when the VPS is available:
 
-- `GKC_AI_MODEL`: required model identifier, for example the model name shown by your provider.
-- `GKC_AI_API_KEY`: provider API key; optional for local servers that do not require authentication.
-- `GKC_AI_BASE_URL`: API base URL; defaults to `https://api.openai.com/v1`.
-- `GKC_AI_TIMEOUT`: request timeout in seconds; defaults to `45` and is capped at `300`.
+- `GKC_AI_MODEL`: the exact model tag installed in local Ollama.
+- `GKC_AI_HOST`: local Ollama address; defaults to `http://127.0.0.1:11434`.
+- `GKC_AI_TIMEOUT`: request timeout in seconds; defaults to `120`.
 
-When `GKC_AI_MODEL` is set, the API-compatible model is preferred over the
-experimental local checkpoint for open-ended conversation. GKC-AI sends a Vietnamese-first
-system instruction, the recent conversation turns, relevant user-taught notes, and retrieved
-web excerpts. The deterministic math/logic solver still runs first for questions it can
-prove. Conversation history currently lives in process memory and resets when the chat
-process restarts. The API key is read from the environment and is not written to the database.
+The model files must be installed on the VPS before general conversation is
+available. Selecting a compact quantized model will depend on the actual RAM,
+CPU, disk space and any accelerator available on that machine. Do not assume a
+model is installed just because its name is configured.
 
-The provider client uses Python's standard library; no additional package is required.
-Only use an endpoint and model you are authorized to access. A successful connection does
-not guarantee correct answers: evaluate factuality, reasoning, latency, cost, and safety
-before exposing the bot to other users.
+GKC-AI sends a Vietnamese-first system instruction, recent conversation turns,
+relevant user-taught notes, and retrieved web excerpts to the local model.
+Conversation history currently lives in process memory and resets when the chat
+process restarts. The symbolic solver remains a separate existing capability;
+this first development stage focuses on Vietnamese conversation and reasoning,
+not expanding math features.
 
 ## Chat with the staged agent
 
