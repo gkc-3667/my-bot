@@ -299,41 +299,41 @@ def _solve_conditional(text):
     if not consequent_terms:
         return None
 
-    question_text = re.sub(r"\b(?:có|chắc chắn|phải|đang|là)\b", " ", normalized)
-    words = re.findall(r"[\wÀ-ỹ]+", question_text)
-    has_consequent = all(term in words for term in consequent_terms)
-    if not has_consequent:
+    # Inspect the first statement after the conditional, not the repeated
+    # consequent in the conditional premise itself.
+    remainder = normalized[match.end():].strip()
+    observation = re.split(r"[.!?;\n]+", remainder, maxsplit=1)[0].strip()
+    if not observation or observation.startswith(
+        ("có phải", "có chắc", "liệu", "có thể kết luận")
+    ):
+        return None
+    observation_words = re.findall(r"[\wÀ-ỹ]+", observation)
+    if not all(term in observation_words for term in consequent_terms):
         return None
 
-    consequent_start = min(
-        (words.index(term) for term in consequent_terms if term in words),
-        default=-1,
-    )
-    # A negative statement of the consequent supports modus tollens.
-    negative_nearby = False
-    if consequent_start >= 0:
-        nearby = words[max(0, consequent_start - 2):consequent_start + len(consequent_terms) + 2]
-        negative_nearby = "không" in nearby
-    if negative_nearby:
+    # Modus tollens is valid only when the observed consequent is explicitly
+    # negated in that observation statement.
+    if "không" in observation_words:
         return ReasoningResult(
             answer=f"Có thể kết luận {antecedent} không xảy ra, "
                    "nếu mệnh đề điều kiện ban đầu là đúng.",
-            method="Phản chứng bằng phủ định hệ quả (modus tollens)",
+            method="Phủ định hệ quả (modus tollens)",
             steps=(
                 f"Nếu {antecedent} thì {consequent}.",
-                f"Quan sát cho biết hệ quả '{consequent}' không xảy ra.",
-                f"Vì vậy suy ra '{antecedent}' không xảy ra.",
+                f"Dữ kiện quan sát: '{observation}'.",
+                f"Hệ quả '{consequent}' không xảy ra, nên suy ra '{antecedent}' không xảy ra.",
             ),
+            confidence=0.98,
         )
 
     return ReasoningResult(
         answer=f"Không thể kết luận chắc chắn rằng {antecedent}. "
                f"Biết '{consequent}' đúng không chứng minh được điều kiện '{antecedent}'.",
-        method="Kiểm tra lỗi khẳng định hệ quả",
+        method="Tránh lỗi khẳng định hệ quả",
         steps=(
             f"Tiền đề chỉ nói: nếu {antecedent} thì {consequent}.",
-            f"Ta quan sát thấy '{consequent}', nhưng điều đó có thể có nguyên nhân khác.",
-            f"Vì vậy không đủ dữ kiện để khẳng định '{antecedent}'.",
+            f"Dữ kiện quan sát: '{observation}'.",
+            f"Hệ quả đúng không đủ chứng minh điều kiện, vì có thể có nguyên nhân khác.",
         ),
         confidence=0.98,
     )
