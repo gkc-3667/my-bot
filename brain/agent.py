@@ -57,7 +57,7 @@ def classify_task(question):
         for term in (
             "so sánh", "tại sao", "vì sao", "chứng minh", "suy luận",
             "tính", "phương trình", "giải pt", "dãy số", "quy luật",
-            "mọi ", "nếu ",
+            "mọi ", "nếu ", "chia cho", "số chẵn", "số lẻ", "ngày mai",
         )
     ):
         return "reasoning"
