@@ -32,6 +32,7 @@ class KnowledgeBaseTests(unittest.TestCase):
             self.assertEqual(len(results), 1)
             self.assertEqual(results[0].topic, "Python")
             self.assertIn("thụt lề", results[0].content)
+            self.assertEqual(memory.count(), 1)
 
     def test_deduplicates_training_examples(self):
         with tempfile.TemporaryDirectory() as folder:
