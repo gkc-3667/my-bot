@@ -57,7 +57,7 @@ def run_diagnostics(
             "info" if provider is not None else "warning",
         )
     except ValueError as error:
-        add("External language-model API", False, str(error), "error")
+        add("Local Ollama model", False, str(error), "error")
 
     model_ready = checkpoint_ready or provider is not None
     add(
