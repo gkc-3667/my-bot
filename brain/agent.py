@@ -54,7 +54,11 @@ def classify_task(question):
         return "tutoring"
     if any(
         term in text
-        for term in ("so sánh", "tại sao", "vì sao", "chứng minh", "suy luận", "tính")
+        for term in (
+            "so sánh", "tại sao", "vì sao", "chứng minh", "suy luận",
+            "tính", "phương trình", "giải pt", "dãy số", "quy luật",
+            "mọi ", "nếu ",
+        )
     ):
         return "reasoning"
     return "general"
