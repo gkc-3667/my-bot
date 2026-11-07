@@ -36,6 +36,18 @@ class PercentageReasoningTests(unittest.TestCase):
         self.assertIsNotNone(result)
         self.assertEqual(result.answer, "Giá trị trung bình là 6.")
 
+    def test_divide_total_by_ratio(self):
+        result = solve_question("Chia 60 theo tỉ lệ 2:3.")
+        self.assertIsNotNone(result)
+        self.assertEqual(
+            result.answer,
+            "Hai phần lần lượt là 24 và 36.",
+        )
+        self.assertIn("Kiểm tra:", result.steps[-1])
+
+    def test_ratio_rejects_zero_parts(self):
+        self.assertIsNone(solve_question("Chia 60 theo tỉ lệ 0:3."))
+
     def test_compare_two_values(self):
         result = solve_question("So sánh 17 và 23.")
         self.assertIsNotNone(result)
