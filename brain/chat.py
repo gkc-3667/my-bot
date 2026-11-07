@@ -4,6 +4,7 @@ import argparse
 import torch
 
 from brain.agent import ResearchAgent
+from brain.knowledge import KnowledgeBase
 from brain.transformer import AIConfig, TKCAI
 
 
@@ -24,7 +25,7 @@ def load_agent(checkpoint_path, memory_path):
     return ResearchAgent(
         model=model,
         device=device,
-        memory=None,
+        memory=KnowledgeBase(memory_path),
         max_search_results=5,
     )
 
@@ -66,10 +67,6 @@ def main():
             f"Checkpoint not found: {args.checkpoint}. "
             "Train TKC-AI from scratch before starting chat."
         )
-
-    # Use the requested memory path explicitly.
-    from brain.knowledge import KnowledgeBase
-    agent.memory = KnowledgeBase(args.memory)
 
     if args.question:
         print_response(agent.reply(args.question, args.max_new_tokens))
