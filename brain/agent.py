@@ -1,4 +1,4 @@
-"""A staged assistant pipeline for TKC-AI.
+"""A staged assistant pipeline for GKC-AI.
 
 A deterministic solver handles supported math/logic questions. Other questions
 can use a trained language model, web retrieval, and taught knowledge. The
@@ -114,7 +114,7 @@ class ResearchAgent:
 
     def _complete(self, prompt, max_new_tokens):
         if self.model is None:
-            raise RuntimeError("A trained TKC-AI checkpoint is not loaded.")
+            raise RuntimeError("A trained GKC-AI checkpoint is not loaded.")
         context_limit = self.model.position_embedding.num_embeddings
         if context_limit < 2:
             raise ValueError("The model context window must be at least 2 tokens.")
@@ -225,7 +225,7 @@ class ResearchAgent:
                     "ngôn ngữ đã huấn luyện:\n\n" + excerpts
                 )
                 warnings.append(
-                    "Chưa có checkpoint đã huấn luyện; TKC-AI chưa thể tổng hợp "
+                    "Chưa có checkpoint đã huấn luyện; GKC-AI chưa thể tổng hợp "
                     "ngôn ngữ hoặc tự viết mã đáng tin cậy."
                 )
                 return AgentResponse(
