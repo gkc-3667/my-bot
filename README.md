@@ -1,4 +1,4 @@
-# TKC-AI
+# GKC-AI
 
 An experimental decoder-only language model developed from random initialization.
 The repository does not use pretrained model weights.
@@ -33,7 +33,7 @@ The repository does not use pretrained model weights.
 
 This is still a research prototype, **not a smart assistant yet**. The repository currently has no trained checkpoint. Randomly initialized weights contain no learned language knowledge or reasoning ability. The included 12 reasoning examples are only a pipeline smoke-test seed.
 
-The staged agent does not magically create intelligence. Its planning, draft and self-review passes all use the same TKC-AI checkpoint, so the reviewer can repeat the same mistake. The code-writing mode generates code but does not execute it. Web search can retrieve current references, but search snippets can be incomplete or wrong and must be checked.
+The staged agent does not magically create intelligence. Its planning, draft and self-review passes all use the same GKC-AI checkpoint, so the reviewer can repeat the same mistake. The code-writing mode generates code but does not execute it. Web search can retrieve current references, but search snippets can be incomplete or wrong and must be checked.
 
 A capable model needs a large, diverse, legally usable dataset, substantial accelerator compute, careful optimization, instruction tuning, and repeated independent evaluation. No model can reliably answer every possible question.
 
@@ -82,7 +82,7 @@ checkpoints/
   .gitkeep
 ~~~
 
-PyTorch is used as the tensor/autograd framework. The architecture and model weights are created by this project; no pretrained checkpoint is downloaded. The instruction-tuning stage starts from a TKC-AI checkpoint produced by our own pretraining.
+PyTorch is used as the tensor/autograd framework. The architecture and model weights are created by this project; no pretrained checkpoint is downloaded. The instruction-tuning stage starts from a GKC-AI checkpoint produced by our own pretraining.
 
 ## Setup
 
@@ -101,7 +101,7 @@ Add UTF-8 .txt files that you own or are licensed to use under data/training_dat
 python -m training.train --steps 100 --seq-len 128 --batch-size 2
 ~~~
 
-This creates checkpoints/tkc_ai_latest.pt. The last 5% of tokens are reserved for a separate validation partition by default. Training now stops with a clear error if either partition is too short for a sequence window; it never silently reuses training tokens as validation data. For a short smoke-test corpus, reduce --seq-len or increase --val-fraction (which must remain below 0.5), for example:
+This creates checkpoints/gkc_ai_latest.pt. The last 5% of tokens are reserved for a separate validation partition by default. Training now stops with a clear error if either partition is too short for a sequence window; it never silently reuses training tokens as validation data. For a short smoke-test corpus, reduce --seq-len or increase --val-fraction (which must remain below 0.5), for example:
 
 ~~~bash
 python -m training.train --steps 10 --seq-len 32 --batch-size 2 --val-fraction 0.2
@@ -114,7 +114,7 @@ Validation samples are repeatable and do not consume the random-number stream us
 New checkpoints save model weights, AdamW optimizer state, Python/PyTorch RNG states, model configuration, batch size, validation split and a SHA-256 fingerprint of the normalized training corpus. Checkpoints are written to a temporary file and atomically replaced to reduce the risk of a partially written checkpoint.
 
 ~~~bash
-python -m training.train --resume checkpoints/tkc_ai_latest.pt --steps 2000
+python -m training.train --resume checkpoints/gkc_ai_latest.pt --steps 2000
 ~~~
 
 The steps argument is the total target step, not the number of additional steps. When resuming, saved context length, batch size, validation fraction and optimizer settings are retained unless the learning rate is explicitly overridden with lr. The corpus fingerprint is checked; a different corpus is rejected unless allow-data-change is explicitly supplied. Changing the corpus means the run is no longer directly comparable with the original run.
@@ -126,12 +126,12 @@ Older checkpoints created before optimizer/RNG metadata was added can still rest
 After you have a base checkpoint from Stage 1, run:
 
 ~~~bash
-python -m training.sft --checkpoint checkpoints/tkc_ai_latest.pt --data data/reasoning_examples.jsonl data/learned_examples.jsonl --steps 300
+python -m training.sft --checkpoint checkpoints/gkc_ai_latest.pt --data data/reasoning_examples.jsonl data/learned_examples.jsonl --steps 300
 ~~~
 
 Pass only datasets that exist. The data argument accepts one or more JSONL files containing prompt and answer. The trainer masks prompt tokens and calculates loss only on answer tokens. Do not use the tiny seed as a substitute for a real training corpus.
 
-## Teach TKC-AI
+## Teach GKC-AI
 
 During chat, use `/status` to inspect actual capabilities, `/doctor` to diagnose local readiness, `/help` to list commands, `/teach Chủ đề | Nội dung | Nguồn` to save a fact with provenance, or `/example Câu hỏi | Câu trả lời đã kiểm chứng` to save a reviewed training pair. The CLI commands below provide the same functionality.
 
@@ -157,14 +157,14 @@ Chat can also start before a trained checkpoint exists:
 python -m brain.chat
 ~~~
 
-Without a checkpoint, TKC-AI runs its deterministic solver for supported math and logic patterns, can retrieve taught notes, and can show web-search excerpts when search is requested. It explicitly refuses to pretend that it can generate a general answer from untrained weights. After a trained checkpoint exists, pass it with --checkpoint to enable the language-model planning, drafting and review pipeline.
+Without a checkpoint, GKC-AI runs its deterministic solver for supported math and logic patterns, can retrieve taught notes, and can show web-search excerpts when search is requested. It explicitly refuses to pretend that it can generate a general answer from untrained weights. After a trained checkpoint exists, pass it with --checkpoint to enable the language-model planning, drafting and review pipeline.
 
 With a trained checkpoint, the agent forms a short plan, searches the web when requested or when current information is needed, retrieves relevant taught notes, drafts an answer, runs a self-review pass, and then produces the final response. It prints any retrieved source URLs. The symbolic solver is used first for question patterns it can prove and verify.
 
 For a single question:
 
 ~~~bash
-python -m brain.chat --checkpoint checkpoints/tkc_ai_instruct.pt --question "Giải thích vì sao 17 + 28 = 45"
+python -m brain.chat --checkpoint checkpoints/gkc_ai_instruct.pt --question "Giải thích vì sao 17 + 28 = 45"
 ~~~
 
 Web search is only one evidence source; verify important claims using primary sources. Search results are treated as untrusted data, not instructions.
@@ -181,12 +181,12 @@ python -m training.build_reasoning_curriculum --count-per-type 100 --seed 42 --o
 After a base checkpoint has been trained, this file can be included in supervised tuning:
 
 ~~~bash
-python -m training.sft --checkpoint checkpoints/tkc_ai_latest.pt --data data/reasoning_examples.jsonl data/reasoning_curriculum.jsonl --steps 1000
+python -m training.sft --checkpoint checkpoints/gkc_ai_latest.pt --data data/reasoning_examples.jsonl data/reasoning_curriculum.jsonl --steps 1000
 ~~~
 
 Synthetic examples teach narrow task formats only. They are not a general knowledge corpus and must never be mixed into the held-out evaluation set.
 
-## Check TKC-AI readiness
+## Check GKC-AI readiness
 
 Run a local capability report before training or debugging:
 
@@ -207,7 +207,7 @@ python -m training.evaluate_symbolic --data data/evaluation/reasoning_smoke.json
 To evaluate the trained language model separately, run:
 
 ~~~bash
-python -m training.evaluate --checkpoint checkpoints/tkc_ai_instruct.pt --data data/evaluation/reasoning_smoke.jsonl
+python -m training.evaluate --checkpoint checkpoints/gkc_ai_instruct.pt --data data/evaluation/reasoning_smoke.jsonl
 ~~~
 
 This small exact-answer score currently includes 15 held-out examples spanning arithmetic, logic, sequences, percentages, averages, comparisons and ratios. It measures the trained language model only; it is not a broad measure of intelligence or generalization. Keep future evaluation data separate from every training dataset. The checkpoint-free symbolic engine is separately checked against the same held-out examples by the unit test `test_reasoning_dataset.py`. You can also run its score report without any model checkpoint:
