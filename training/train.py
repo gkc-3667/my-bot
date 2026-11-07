@@ -107,11 +107,19 @@ def _restore_rng_state(state):
             random.setstate(state["python"])
         if "torch" in state:
             torch.set_rng_state(state["torch"].cpu())
-        if torch.cuda.is_available() and state.get("cuda"):
-            torch.cuda.set_rng_state_all([item.cpu() for item in state["cuda"]])
+        cuda_restored = True
+        if torch.cuda.is_available():
+            cuda_states = state.get("cuda")
+            if not cuda_states or len(cuda_states) != torch.cuda.device_count():
+                cuda_restored = False
+            else:
+                torch.cuda.set_rng_state_all([item.cpu() for item in cuda_states])
     except (TypeError, ValueError, RuntimeError) as error:
         raise ValueError(f"Checkpoint RNG state is invalid: {error}") from error
-    return "python" in state and "torch" in state
+    else:
+        if not torch.cuda.is_available():
+            cuda_restored = True
+    return "python" in state and "torch" in state and cuda_restored
 
 
 def save_checkpoint(

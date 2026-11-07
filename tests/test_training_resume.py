@@ -2,10 +2,15 @@ import random
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 import torch
 
-from training.train import restore_checkpoint_state, save_checkpoint
+from training.train import (
+    _restore_rng_state,
+    restore_checkpoint_state,
+    save_checkpoint,
+)
 
 
 class _Config:
@@ -61,6 +66,14 @@ class TrainingResumeTests(unittest.TestCase):
             self.assertEqual(random.random(), expected_python_random)
             self.assertTrue(torch.equal(torch.rand(4), expected_torch_random))
             self.assertFalse(path.with_name(path.name + ".tmp").exists())
+
+    def test_reports_incomplete_rng_restore_when_cuda_state_is_missing(self):
+        state = {"python": random.getstate(), "torch": torch.get_rng_state(), "cuda": []}
+        with patch("training.train.torch.cuda.is_available", return_value=True):
+            with patch("training.train.torch.cuda.device_count", return_value=1):
+                with patch("training.train.torch.cuda.set_rng_state_all") as set_cuda:
+                    self.assertFalse(_restore_rng_state(state))
+                    set_cuda.assert_not_called()
 
     def test_rejects_different_corpus_unless_explicitly_allowed(self):
         model, optimizer = self._make_model_optimizer()
