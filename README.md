@@ -132,10 +132,10 @@ Older checkpoints created before optimizer/RNG metadata was added can still rest
 After you have a base checkpoint from Stage 1, run:
 
 ~~~bash
-python -m training.sft --checkpoint checkpoints/gkc_ai_latest.pt --data data/reasoning_examples.jsonl data/learned_examples.jsonl --steps 300
+python -m training.sft --checkpoint checkpoints/gkc_ai_latest.pt --data data/reasoning_examples.jsonl data/code_english_examples.jsonl data/learned_examples.jsonl --steps 300
 ~~~
 
-Pass only datasets that exist. The data argument accepts one or more JSONL files containing prompt and answer. The trainer masks prompt tokens and calculates loss only on answer tokens. Do not use the tiny seed as a substitute for a real training corpus.
+Pass only datasets that exist. The data argument accepts one or more JSONL files containing prompt and answer. The trainer masks prompt tokens and calculates loss only on answer tokens. `data/code_english_examples.jsonl` is a 20-example starter curriculum for basic Python/JavaScript, debugging, code explanation and English conversation; it is a smoke-test seed, not enough to teach broad programming or fluency. Review and expand it with original or licensed examples before meaningful training. Do not use the tiny seed as a substitute for a real training corpus.
 
 ## Teach GKC-AI
 
