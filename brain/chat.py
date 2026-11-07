@@ -65,7 +65,7 @@ def handle_learning_command(agent, question):
     if question == "/status":
         provider = getattr(agent, "llm_provider", None)
         checkpoint_state = (
-            f"đã kết nối mô hình API: {getattr(provider, 'model', 'không rõ tên')}"
+            f"đã cấu hình mô hình API: {getattr(provider, 'model', 'không rõ tên')}"
             if provider is not None
             else (
                 "đã nạp checkpoint cục bộ"
@@ -198,7 +198,7 @@ def main():
 
     if agent.llm_provider is not None:
         print(
-            f"GKC-AI đã kết nối mô hình ngôn ngữ API: {agent.llm_provider.model}. "
+            f"GKC-AI đã cấu hình mô hình ngôn ngữ API: {agent.llm_provider.model}. "
             "Có thể trò chuyện nhiều lượt; gõ 'thoát' để kết thúc."
         )
     elif agent.model is not None:
