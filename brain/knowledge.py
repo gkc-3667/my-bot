@@ -91,6 +91,12 @@ class KnowledgeBase:
             for _, _, row in scored[:limit]
         ]
 
+    def count(self):
+        """Return the number of stored knowledge notes."""
+        with self._connect() as connection:
+            row = connection.execute("SELECT COUNT(*) AS total FROM knowledge").fetchone()
+        return int(row["total"])
+
     @staticmethod
     def add_training_example(prompt, answer, path="data/learned_examples.jsonl"):
         prompt = str(prompt).strip()
