@@ -19,6 +19,8 @@ The repository does not use pretrained model weights.
 - [x] Curated Q&A examples saved for later supervised fine-tuning
 - [x] Code-writing and tutoring response modes
 - [x] Interactive chat entry point and EOS-aware generation
+- [x] OpenAI-compatible model provider with environment-based credentials
+- [x] Multi-turn API chat context with an in-session reset command
 - [x] Held-out reasoning smoke set and an exact-answer evaluation script
 - [x] GitHub Actions workflow for running unit tests
 - [ ] Train a more efficient BPE tokenizer from our own corpus
@@ -44,7 +46,8 @@ brain/
   transformer.py   # decoder-only Transformer trained from random initialization
   tokenizer.py     # UTF-8 byte tokenizer (IDs 0..255, special IDs 256..258)
   generate.py      # safe checkpoint loading and EOS-aware generation
-  agent.py         # staged plan -> web -> memory -> draft -> review -> answer
+  agent.py         # staged reasoning, retrieval, memory and response orchestration
+  llm.py           # OpenAI-compatible hosted/local chat model client
   reasoning.py     # deterministic reasoning, conditional chains and checkable derivations
   reasoning_extra.py # percentage, average, comparison and ratio solvers
   doctor.py        # inspect model readiness and local capabilities
