@@ -299,8 +299,17 @@ def _normalize_proposition(value):
     return re.sub(r"\s+", " ", str(value).strip().casefold()).strip(" \t\r\n.,;:")
 
 
+def _split_conjunctive_propositions(value):
+    """Split simple Vietnamese conjunctions into separately checkable facts."""
+    parts = re.split(
+        r"\s+(?:và|đồng thời)\s+",
+        _normalize_proposition(value),
+    )
+    return tuple(dict.fromkeys(part for part in parts if part))
+
+
 def _solve_conditional_chain(text):
-    """Apply bounded forward chaining to explicit Vietnamese if-then rules."""
+    """Apply bounded forward chaining, including rules with multiple premises."""
     raw_sentences = re.findall(r"[^.!?;\n]+[.!?;]?", str(text).casefold())
     rules = []
     facts = set()
@@ -317,10 +326,10 @@ def _solve_conditional_chain(text):
             continue
         rule_match = re.fullmatch(r"nếu\s+(.+?)\s+thì\s+(.+)", sentence)
         if rule_match:
-            antecedent = _normalize_proposition(rule_match.group(1))
+            antecedents = _split_conjunctive_propositions(rule_match.group(1))
             consequent = _normalize_proposition(rule_match.group(2))
-            if antecedent and consequent and antecedent != consequent:
-                rules.append((antecedent, consequent))
+            if antecedents and consequent and consequent not in antecedents:
+                rules.append((antecedents, consequent))
             continue
 
         target_match = re.fullmatch(
@@ -339,11 +348,10 @@ def _solve_conditional_chain(text):
                 asks_for_inference = True
             continue
 
-        fact = _normalize_proposition(sentence)
-        if fact:
-            facts.add(fact)
+        facts.update(_split_conjunctive_propositions(sentence))
 
-    if len(rules) < 2 or not asks_for_inference:
+    has_multi_premise_rule = any(len(antecedents) > 1 for antecedents, _ in rules)
+    if (len(rules) < 2 and not has_multi_premise_rule) or not asks_for_inference:
         return None
 
     if not facts:
@@ -354,8 +362,8 @@ def _solve_conditional_chain(text):
             ),
             method="Kiểm tra tiền đề cho suy diễn chuỗi",
             steps=tuple(
-                f"Quy tắc đã cho: nếu {antecedent} thì {consequent}."
-                for antecedent, consequent in rules
+                f"Quy tắc đã cho: nếu {' và '.join(antecedents)} thì {consequent}."
+                for antecedents, consequent in rules
             ),
             confidence=1.0,
         )
@@ -363,22 +371,25 @@ def _solve_conditional_chain(text):
     known = set(facts)
     derived = []
     # Each rule adds a proposition at most once, so cyclic rules terminate.
+    # Repeated bounded passes also handle rules listed in reverse dependency order.
     for _ in range(len(rules) + 1):
         changed = False
-        for antecedent, consequent in rules:
-            if antecedent in known and consequent not in known:
+        for antecedents, consequent in rules:
+            if all(item in known for item in antecedents) and consequent not in known:
                 known.add(consequent)
-                derived.append((antecedent, consequent))
+                derived.append((antecedents, consequent))
                 changed = True
         if not changed:
             break
 
     steps = [
         (
-            f"Vì mệnh đề '{antecedent}' đã được xác lập, áp dụng quy tắc "
-            f"'nếu {antecedent} thì {consequent}', suy ra '{consequent}'."
+            f"Vì các điều kiện {', '.join(repr(item) for item in antecedents)} "
+            f"đều đã được xác lập, áp dụng quy tắc "
+            f"'nếu {' và '.join(antecedents)} thì {consequent}', "
+            f"suy ra '{consequent}'."
         )
-        for antecedent, consequent in derived
+        for antecedents, consequent in derived
     ]
 
     if target is not None:
@@ -391,14 +402,15 @@ def _solve_conditional_chain(text):
                 steps=tuple(steps),
             )
         rule_steps = [
-            f"Quy tắc: nếu {antecedent} thì {consequent}."
-            for antecedent, consequent in rules
+            f"Quy tắc: nếu {' và '.join(antecedents)} thì {consequent}."
+            for antecedents, consequent in rules
         ]
         rule_steps.extend(f"Dữ kiện: {fact}." for fact in sorted(facts))
         return ReasoningResult(
             answer=(
                 f"Chưa đủ dữ kiện để suy ra '{target}'. "
-                "Không thể đảo chiều một quy tắc nếu chưa có tiền đề phù hợp."
+                "Mọi điều kiện của một quy tắc phải được xác lập; "
+                "không thể đảo chiều quy tắc để tự suy đoán tiền đề."
             ),
             method="Kiểm tra khả năng suy diễn chuỗi",
             steps=tuple(rule_steps + steps),

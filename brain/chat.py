@@ -79,6 +79,7 @@ def handle_learning_command(agent, question):
             )
         print("\nTrạng thái TKC-AI:")
         print(f"- Mô hình ngôn ngữ: {checkpoint_state}.")
+        print("- Suy luận quy tắc: đang bật cho các dạng có dữ kiện kiểm chứng được.")
         print(
             "- Suy luận có kiểm chứng: số học, phương trình bậc nhất, "
             "phần trăm, trung bình, so sánh, tỉ lệ, dãy số, lịch và một số luật logic."
