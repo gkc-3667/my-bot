@@ -12,3 +12,4 @@
 {"prompt":"Chia 60 theo tỉ lệ 2:3.","expected":["Hai phần lần lượt là 24 và 36"]}
 {"prompt":"So sánh 17 và 23.","expected":["23 lớn hơn 17"]}
 {"prompt":"Từ 80 lên 100 tăng bao nhiêu phần trăm?","expected":["Giá trị đã tăng 25%"]}
+{"prompt":"Nếu trời nhiều mây và độ ẩm cao thì có mưa. Nếu có mưa thì đường ướt. Trời nhiều mây. Độ ẩm cao. Có thể kết luận gì?","expected":["đường ướt"]}
