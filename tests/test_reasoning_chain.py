@@ -37,6 +37,24 @@ class ConditionalChainReasoningTests(unittest.TestCase):
         self.assertIsNotNone(result)
         self.assertIn("Chưa đủ dữ kiện", result.answer)
 
+    def test_answers_explicit_certainty_question_about_known_fact(self):
+        result = solve_question(
+            "Nếu trời mưa thì đường ướt. "
+            "Nếu đường ướt thì xe dễ trượt. "
+            "Trời mưa. Có chắc chắn trời mưa không?"
+        )
+        self.assertIsNotNone(result)
+        self.assertIn("'trời mưa' từ các tiền đề", result.answer)
+
+    def test_certainty_question_does_not_infer_the_converse(self):
+        result = solve_question(
+            "Nếu trời mưa thì đường ướt. "
+            "Nếu đường ướt thì xe dễ trượt. "
+            "Đường ướt. Có chắc chắn trời mưa không?"
+        )
+        self.assertIsNotNone(result)
+        self.assertIn("Chưa đủ dữ kiện", result.answer)
+
     def test_cycle_terminates_without_repeating_conclusions(self):
         result = solve_question(
             "Nếu A thì B. Nếu B thì A. A. Có thể kết luận gì?"
