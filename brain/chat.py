@@ -6,13 +6,13 @@ import torch
 
 from brain.agent import ResearchAgent
 from brain.knowledge import KnowledgeBase
-from brain.llm import OpenAICompatibleProvider
+from brain.llm import LocalOllamaProvider
 from brain.transformer import AIConfig, TKCAI
 
 
 def load_agent(checkpoint_path, memory_path):
     memory = KnowledgeBase(memory_path)
-    provider = OpenAICompatibleProvider.from_env()
+    provider = LocalOllamaProvider.from_env()
     checkpoint = Path(checkpoint_path)
     if not checkpoint.is_file():
         return ResearchAgent(
@@ -65,7 +65,7 @@ def handle_learning_command(agent, question):
     if question == "/status":
         provider = getattr(agent, "llm_provider", None)
         checkpoint_state = (
-            f"đã cấu hình mô hình API: {getattr(provider, 'model', 'không rõ tên')}"
+            f"đã cấu hình mô hình cục bộ: {getattr(provider, 'model', 'không rõ tên')}"
             if provider is not None
             else (
                 "đã nạp checkpoint cục bộ"
@@ -94,7 +94,7 @@ def handle_learning_command(agent, question):
             "phần trăm, trung bình, so sánh, tỉ lệ, dãy số, lịch và một số luật logic."
         )
         if provider is not None:
-            print("- Câu hỏi mở: chuyển tới mô hình API đã cấu hình.")
+            print("- Câu hỏi mở: chuyển tới mô hình Ollama chạy cục bộ.")
             print("- Lịch sử chat: giữ 6 lượt gần nhất trong RAM; dùng /reset để xóa.")
         elif agent.model is not None:
             print("- Câu hỏi mở: chuyển tới checkpoint ngôn ngữ cục bộ.")
@@ -198,7 +198,7 @@ def main():
 
     if agent.llm_provider is not None:
         print(
-            f"GKC-AI đã cấu hình mô hình ngôn ngữ API: {agent.llm_provider.model}. "
+            f"GKC-AI đã cấu hình mô hình ngôn ngữ cục bộ: {agent.llm_provider.model}. "
             "Có thể trò chuyện nhiều lượt; gõ 'thoát' để kết thúc."
         )
     elif agent.model is not None:
