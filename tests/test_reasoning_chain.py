@@ -63,6 +63,14 @@ class ConditionalChainReasoningTests(unittest.TestCase):
         self.assertIn("b", result.answer)
         self.assertEqual(len(result.steps), 1)
 
+    def test_does_not_answer_unrelated_question_from_chain_context(self):
+        result = solve_question(
+            "Nếu trời mưa thì đường ướt. "
+            "Nếu đường ướt thì xe dễ trượt. "
+            "Trời mưa. Mình nên mang giày gì?"
+        )
+        self.assertIsNone(result)
+
     def test_multiple_rules_without_facts_are_not_guessed(self):
         result = solve_question(
             "Nếu trời mưa thì đường ướt. "
