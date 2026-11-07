@@ -7,7 +7,7 @@ The repository does not use pretrained model weights.
 
 - [x] Decoder-only Transformer architecture
 - [x] Reversible UTF-8 byte tokenizer (starter tokenizer)
-- [x] Next-token training loop with validation loss and checkpoints
+- [x] Next-token training loop with validation loss, atomic checkpoints and resumable optimizer/RNG state
 - [x] Response-only supervised instruction tuning
 - [x] Small Vietnamese reasoning-example seed for pipeline testing
 - [x] Staged assistant orchestration: plan, research, retrieve, draft, self-review, answer
@@ -47,7 +47,7 @@ brain/
   teach.py         # save a fact or a reviewed question/answer example
   chat.py          # interactive assistant entry point
 training/
-  train.py         # next-token pretraining, validation and checkpointing
+  train.py         # pretraining, separate validation, atomic save and full-state resume
   sft.py           # response-only supervised instruction tuning; accepts many JSONL files
   evaluate.py      # exact-answer smoke evaluation on held-out examples
 tests/
@@ -56,6 +56,7 @@ tests/
   test_sft_data.py
   test_evaluation.py
   test_training_split.py
+  test_training_resume.py
 data/
   reasoning_examples.jsonl
   evaluation/reasoning_smoke.jsonl
@@ -94,6 +95,18 @@ python -m training.train --steps 10 --seq-len 32 --batch-size 2 --val-fraction 0
 
 Validation samples are repeatable and do not consume the random-number stream used for training. A small corpus can check the pipeline only; it will not teach broad language ability.
 
+### Resume interrupted pretraining
+
+New checkpoints save model weights, AdamW optimizer state, Python/PyTorch RNG states, model configuration, batch size, validation split and a SHA-256 fingerprint of the normalized training corpus. Checkpoints are written to a temporary file and atomically replaced to reduce the risk of a partially written checkpoint.
+
+~~~bash
+python -m training.train --resume checkpoints/tkc_ai_latest.pt --steps 2000
+~~~
+
+The steps argument is the total target step, not the number of additional steps. When resuming, saved context length, batch size, validation fraction and optimizer settings are retained unless the learning rate is explicitly overridden with lr. The corpus fingerprint is checked; a different corpus is rejected unless allow-data-change is explicitly supplied. Changing the corpus means the run is no longer directly comparable with the original run.
+
+Older checkpoints created before optimizer/RNG metadata was added can still restore model weights, but the optimizer and random-number streams must start fresh. The code prints warnings when full resume metadata is missing. Reproducibility is intended for the same corpus and compatible software/device environment; bit-for-bit equality across different hardware or nondeterministic GPU kernels is not guaranteed.
+
 ## Stage 2: instruction tuning
 
 After you have a base checkpoint from Stage 1, run:
@@ -102,7 +115,7 @@ After you have a base checkpoint from Stage 1, run:
 python -m training.sft --checkpoint checkpoints/tkc_ai_latest.pt --data data/reasoning_examples.jsonl data/learned_examples.jsonl --steps 300
 ~~~
 
-Pass only datasets that exist. The --data argument accepts one or more JSONL files containing prompt and answer. The trainer masks prompt tokens and calculates loss only on answer tokens. Do not use the tiny seed as a substitute for a real training corpus.
+Pass only datasets that exist. The data argument accepts one or more JSONL files containing prompt and answer. The trainer masks prompt tokens and calculates loss only on answer tokens. Do not use the tiny seed as a substitute for a real training corpus.
 
 ## Teach TKC-AI
 
@@ -156,6 +169,6 @@ Run the project's unit tests with:
 python -m unittest discover -s tests
 ~~~
 
-GitHub Actions is configured to run the unit tests on pushes and pull requests. The tests are included in the repository, but this commit does not claim that they have passed in a target Python/PyTorch environment. No training run or end-to-end chat-quality evaluation is claimed.
+GitHub Actions is configured to run the unit tests on pushes and pull requests. The workflow has passed on the repository's previous main revision; each new push triggers another run. A passing unit-test suite validates tested code paths, not training quality or broad reasoning ability. No end-to-end model-quality result is claimed.
 
 Generated quality depends on the training corpus, context length, compute, and evaluation. The starter byte tokenizer is inefficient and should later be replaced with a corpus-trained tokenizer.
