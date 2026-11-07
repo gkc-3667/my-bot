@@ -9,6 +9,7 @@ from unittest.mock import patch
 from brain.agent import ResearchAgent
 from brain.knowledge import KnowledgeBase
 from brain.llm import OpenAICompatibleProvider
+from brain.chat import handle_learning_command
 
 
 class FakeProvider:
@@ -61,6 +62,18 @@ class LLMProviderTests(unittest.TestCase):
     def test_rejects_invalid_endpoint(self):
         with self.assertRaises(ValueError):
             OpenAICompatibleProvider("file:///tmp/model", "test-model")
+
+    def test_reset_command_clears_conversation_context(self):
+        with tempfile.TemporaryDirectory() as folder:
+            agent = ResearchAgent(
+                model=None,
+                llm_provider=FakeProvider(),
+                memory=KnowledgeBase(Path(folder) / "memory.sqlite3"),
+                search_provider=type("NoSearch", (), {"search": lambda *a, **k: []})(),
+            )
+            agent.conversation_history.append({"role": "user", "content": "old context"})
+            self.assertTrue(handle_learning_command(agent, "/reset"))
+            self.assertEqual(agent.conversation_history, [])
 
     def test_agent_uses_provider_and_keeps_multi_turn_context(self):
         with tempfile.TemporaryDirectory() as folder:
