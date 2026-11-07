@@ -144,7 +144,10 @@ def _solve_arithmetic(text):
     # Dates such as 2026/11/07 are not arithmetic expressions.
     if re.search(r"\b\d{4}[/-]\d{1,2}[/-]\d{1,2}\b", normalized):
         return None
-    math_intent = any(
+    explicit_operator = bool(
+        re.search(r"(?<!\w)\d+(?:[.,]\d+)?\s*(?:\*\*|[+\-*/%])\s*\d+", normalized)
+    )
+    math_intent = explicit_operator or any(
         term in normalized
         for term in (
             "tính", "phép tính", "kết quả", "bao nhiêu", "cộng",
@@ -167,7 +170,7 @@ def _solve_arithmetic(text):
         normalized = re.sub(pattern, replacement, normalized)
 
     pattern = re.compile(
-        r"(?<![\w.])\d+(?:[.,]\d+)?"
+        r"(?<![\w.])-?\d+(?:[.,]\d+)?"
         r"(?:\s*(?:\*\*|[+\-*/%])\s*\d+(?:[.,]\d+)?)+"
     )
     for match in pattern.finditer(normalized):
@@ -205,6 +208,7 @@ def _solve_sequence(text):
         return ReasoningResult(
             answer=f"Số tiếp theo là {next_value}.",
             method="Nhận diện cấp số cộng",
+            confidence=0.8,
             steps=(
                 f"Các số đã cho: {', '.join(map(str, values))}.",
                 f"Hiệu liên tiếp đều bằng {differences[0]}.",
@@ -222,6 +226,7 @@ def _solve_sequence(text):
             return ReasoningResult(
                 answer=f"Số tiếp theo là {_format_number(next_value)}.",
                 method="Nhận diện cấp số nhân",
+                confidence=0.8,
                 steps=(
                     f"Các số đã cho: {', '.join(map(str, values))}.",
                     f"Tỉ số liên tiếp đều bằng {_format_number(ratio)}.",
