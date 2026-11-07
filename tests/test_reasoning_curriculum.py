@@ -17,6 +17,17 @@ class ReasoningCurriculumTests(unittest.TestCase):
             self.assertTrue(row["answer"].strip())
             self.assertIn("Phương pháp:", row["answer"])
 
+    def test_generated_examples_include_multi_step_chains(self):
+        examples = build_examples(count_per_type=3, seed=13)
+        chain_examples = [
+            row for row in examples
+            if "Nếu " in row["prompt"] and row["prompt"].count("Nếu ") >= 2
+        ]
+        self.assertTrue(chain_examples)
+        self.assertTrue(
+            any("Suy diễn chuỗi" in row["answer"] for row in chain_examples)
+        )
+
     def test_generated_answers_cover_supported_task_families(self):
         examples = build_examples(count_per_type=1, seed=31)
         answers = "\n".join(row["answer"] for row in examples)
