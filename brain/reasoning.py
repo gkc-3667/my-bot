@@ -392,7 +392,9 @@ def _solve_linear_equation(text):
         return None
 
     def parse_side(side):
-        expression = side.casefold().replace("^", "**")
+        expression = side.casefold().replace("^", "**").strip()
+        if expression.endswith("."):
+            expression = expression[:-1].rstrip()
         expression = re.sub(r"(?<=\d)\s*x\b", "*x", expression)
         expression = re.sub(r"(?<=\))\s*x\b", "*x", expression)
         expression = re.sub(r"\bx\b", "x", expression)
