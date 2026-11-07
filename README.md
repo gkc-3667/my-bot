@@ -98,7 +98,7 @@ Add UTF-8 .txt files that you own or are licensed to use under data/training_dat
 ## Stage 1: next-token pretraining
 
 ~~~bash
-python -m training.train --steps 100 --seq-len 128 --batch-size 2
+python -m training.train --preset cpu-small --steps 1000 --seq-len 256 --batch-size 2
 ~~~
 
 This creates checkpoints/tkc_ai_latest.pt. The last 5% of tokens are reserved for a separate validation partition by default. Training now stops with a clear error if either partition is too short for a sequence window; it never silently reuses training tokens as validation data. For a short smoke-test corpus, reduce --seq-len or increase --val-fraction (which must remain below 0.5), for example:
@@ -108,6 +108,9 @@ python -m training.train --steps 10 --seq-len 32 --batch-size 2 --val-fraction 0
 ~~~
 
 Validation samples are repeatable and do not consume the random-number stream used for training. A small corpus can check the pipeline only; it will not teach broad language ability.
+
+The default `cpu-small` preset uses a 4-layer, 128-wide Transformer and batch size 2, a conservative starting point for a CPU-only 4-core / 16 GB machine. It is a smaller model, not a shortcut to ChatGPT-level ability. Use `--preset standard` for the original 6-layer, 256-wide architecture when accelerator resources permit. A checkpoint always records its architecture; resume restores that saved configuration and rejects a preset change.
+
 
 ### Resume interrupted pretraining
 
