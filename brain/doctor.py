@@ -5,7 +5,7 @@ import platform
 from pathlib import Path
 
 from brain.knowledge import KnowledgeBase
-from brain.llm import OpenAICompatibleProvider
+from brain.llm import LocalOllamaProvider
 from brain.reasoning import solve_question
 
 
@@ -45,14 +45,14 @@ def run_diagnostics(
 
     provider = None
     try:
-        provider = OpenAICompatibleProvider.from_env()
+        provider = LocalOllamaProvider.from_env()
         add(
-            "External language-model API",
+            "Local Ollama model",
             provider is not None,
             (
-                f"Configured model '{provider.model}' at {provider.base_url}; live connectivity has not been tested."
+                f"Configured local model '{provider.model}' at {provider.host}; live connectivity has not been tested."
                 if provider is not None
-                else "GKC_AI_MODEL is not set; configure an OpenAI-compatible model to enable general chat."
+                else "GKC_AI_MODEL is not set; configure a local Ollama model to enable general chat."
             ),
             "info" if provider is not None else "warning",
         )
@@ -63,9 +63,9 @@ def run_diagnostics(
     add(
         "General language model configured",
         model_ready,
-        "A local checkpoint or external model is configured."
+        "A local checkpoint or local Ollama model is configured."
         if model_ready
-        else "No trained local checkpoint or external language model is configured.",
+        else "No trained local checkpoint or local Ollama model is configured.",
         "info" if model_ready else "warning",
     )
 
@@ -145,7 +145,7 @@ def main():
         print(f"[{status}] {check['name']}: {check['detail']}")
     print("=" * 56)
     print("Rule-based reasoning can solve only the patterns it explicitly supports.")
-    print("A trained local checkpoint or configured external language model is required for general language generation.")
+    print("A trained local checkpoint or locally running Ollama model is required for general language generation.")
     if args.strict and (
         not any(check["name"] == "General language model configured" and check["ok"] for check in checks)
         or any(not check["ok"] and check["level"] == "error" for check in checks)
