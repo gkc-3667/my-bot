@@ -139,6 +139,41 @@ def _solve_word_problem(text):
     return None
 
 
+def _solve_parity(text):
+    """Infer even/odd status from an explicitly stated remainder modulo two."""
+    normalized = str(text).casefold()
+    match = re.search(r"\bchia\s+cho\s+2\s+dư\s+([01])\b", normalized)
+    if not match:
+        return None
+
+    asks_even = "số chẵn" in normalized
+    asks_odd = "số lẻ" in normalized
+    if asks_even == asks_odd:
+        return None
+
+    remainder = int(match.group(1))
+    is_even = remainder == 0
+    expected = is_even if asks_even else not is_even
+    asked_name = "chẵn" if asks_even else "lẻ"
+    actual_name = "chẵn" if is_even else "lẻ"
+    verdict = "Có" if expected else "Không"
+    explanation = f"Số chia cho 2 dư {remainder} là số {actual_name}."
+    answer = (
+        f"{verdict}. {explanation}"
+        if expected
+        else f"{verdict}. {explanation} Vì vậy số đó không phải số {asked_name}."
+    )
+    return ReasoningResult(
+        answer=answer,
+        method="Suy luận tính chẵn lẻ từ số dư",
+        steps=(
+            f"Dữ kiện: số đó chia cho 2 dư {remainder}.",
+            explanation,
+            f"Kết luận: số đó {'là' if expected else 'không phải'} số {asked_name}.",
+        ),
+    )
+
+
 def _solve_arithmetic(text):
     normalized = text.casefold()
     # Dates such as 2026/11/07 are not arithmetic expressions.
@@ -249,6 +284,8 @@ def _solve_syllogism(text):
         if match:
             universal = tuple(part.strip() for part in match.groups())
             continue
+        if "có phải là" in statement:
+            continue
         match = re.search(r"^(.+?)\s+là\s+(.+)$", statement.strip())
         if match:
             identity = tuple(part.strip() for part in match.groups())
@@ -262,9 +299,16 @@ def _solve_syllogism(text):
     if category_word != subject_word:
         return None
 
-    question_match = re.search(
+    question_statements = [
+        statement.strip()
+        for statement in re.split(r"[.!?;\n]+", text.casefold())
+        if "có phải là" in statement
+    ]
+    if len(question_statements) != 1:
+        return None
+    question_match = re.fullmatch(
         r"(.+?)\s+có\s+phải\s+là\s+(.+?)\s+không",
-        text.casefold(),
+        question_statements[0],
     )
     if not question_match:
         return None
@@ -283,6 +327,118 @@ def _solve_syllogism(text):
             f"Tiền đề 2: {subject} là {subject_category}.",
             f"Kết luận: {subject} là {super_category}.",
         ),
+    )
+
+
+def _normalize_proposition(value):
+    """Normalize a short proposition without changing its logical meaning."""
+    return re.sub(r"\s+", " ", str(value).strip().casefold()).strip(" \t\r\n.,;:")
+
+
+def _solve_conditional_chain(text):
+    """Apply bounded forward chaining to explicit Vietnamese if-then rules."""
+    raw_sentences = re.findall(r"[^.!?;\n]+[.!?;]?", str(text).casefold())
+    rules = []
+    facts = set()
+    target = None
+    question_markers = (
+        "có thể kết luận", "có suy ra", "suy ra gì", "kết luận gì",
+        "có chắc chắn", "có phải", "vì sao", "tại sao",
+    )
+
+    for raw_sentence in raw_sentences:
+        sentence = raw_sentence.strip().strip(".!?;").strip()
+        if not sentence:
+            continue
+        rule_match = re.fullmatch(r"nếu\s+(.+?)\s+thì\s+(.+)", sentence)
+        if rule_match:
+            antecedent = _normalize_proposition(rule_match.group(1))
+            consequent = _normalize_proposition(rule_match.group(2))
+            if antecedent and consequent and antecedent != consequent:
+                rules.append((antecedent, consequent))
+            continue
+
+        target_match = re.fullmatch(
+            r"(?:có thể kết luận|có suy ra|suy ra)\s+(?:được\s+)?(.+?)\s+không",
+            sentence,
+        )
+        is_question = "?" in raw_sentence or any(
+            marker in sentence for marker in question_markers
+        )
+        if is_question:
+            if target_match:
+                target = _normalize_proposition(target_match.group(1))
+            continue
+
+        facts.add(_normalize_proposition(sentence))
+
+    if len(rules) < 2:
+        return None
+    if not facts:
+        return ReasoningResult(
+            answer=(
+                "Chưa có dữ kiện ban đầu để kích hoạt các quy tắc; "
+                "vì vậy chưa thể suy ra kết luận."
+            ),
+            method="Kiểm tra tiền đề cho suy diễn chuỗi",
+            steps=tuple(
+                f"Quy tắc đã cho: nếu {a} thì {b}." for a, b in rules
+            ),
+            confidence=1.0,
+        )
+
+    known = set(facts)
+    derived = []
+    for _ in range(len(rules) + 1):
+        changed = False
+        for antecedent, consequent in rules:
+            if antecedent in known and consequent not in known:
+                known.add(consequent)
+                derived.append((antecedent, consequent))
+                changed = True
+        if not changed:
+            break
+
+    steps = [
+        (
+            f"Vì mệnh đề '{a}' đã được xác lập, áp dụng quy tắc "
+            f"'nếu {a} thì {b}', suy ra '{b}'."
+        )
+        for a, b in derived
+    ]
+    if target is not None:
+        if target in known:
+            if target in facts:
+                steps.insert(0, f"'{target}' đã được nêu trực tiếp như một dữ kiện.")
+            return ReasoningResult(
+                answer=f"Có thể kết luận '{target}' từ các tiền đề đã cho.",
+                method="Suy diễn chuỗi bằng luật kéo theo (forward chaining)",
+                steps=tuple(steps),
+            )
+        rule_steps = [f"Quy tắc: nếu {a} thì {b}." for a, b in rules]
+        rule_steps.extend(f"Dữ kiện: {fact}." for fact in sorted(facts))
+        return ReasoningResult(
+            answer=(
+                f"Chưa đủ dữ kiện để suy ra '{target}'. "
+                "Không thể đảo chiều một quy tắc nếu chưa có tiền đề phù hợp."
+            ),
+            method="Kiểm tra khả năng suy diễn chuỗi",
+            steps=tuple(rule_steps + steps),
+            confidence=1.0,
+        )
+
+    if not derived:
+        return ReasoningResult(
+            answer="Chưa suy ra được kết luận mới từ các dữ kiện và quy tắc hiện có.",
+            method="Suy diễn chuỗi bằng luật kéo theo (forward chaining)",
+            steps=tuple(f"Dữ kiện: {fact}." for fact in sorted(facts)),
+            confidence=1.0,
+        )
+    conclusions = list(dict.fromkeys(b for _, b in derived))
+    return ReasoningResult(
+        answer="Có thể suy ra: " + "; ".join(conclusions) + ".",
+        method="Suy diễn chuỗi bằng luật kéo theo (forward chaining)",
+        steps=tuple(steps),
     )
 
 
@@ -470,9 +626,11 @@ def solve_question(question):
         _solve_linear_equation,
         _solve_word_problem,
         _solve_syllogism,
+        _solve_conditional_chain,
         _solve_conditional,
         _solve_sequence,
         _solve_weekday,
+        _solve_parity,
         _solve_arithmetic,
     )
     for solver in solvers:
