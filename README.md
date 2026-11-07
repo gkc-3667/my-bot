@@ -11,7 +11,7 @@ The repository does not use pretrained model weights.
 - [x] Response-only supervised instruction tuning
 - [x] Small Vietnamese reasoning-example seed for pipeline testing
 - [x] Staged assistant orchestration: plan, research, retrieve, draft, self-review, answer
-- [x] Deterministic symbolic reasoning for arithmetic, percentages, averages, comparisons, ratio partitions, word problems, linear equations, syllogisms, conditionals, multi-step rule chains, sequences, parity and weekday logic
+- [x] Deterministic symbolic reasoning for arithmetic, percentages, averages, comparisons, ratio partitions, word problems, linear equations, syllogisms, conditionals, multi-premise and multi-step rule chains, sequences, parity and weekday logic
 - [x] Local diagnostics for checkpoint, training data, PyTorch, web search, memory and reasoning readiness
 - [x] Checkable derivation steps and checkpoint-free reasoning/evidence-only chat mode
 - [x] Optional live web search through the ddgs search library
@@ -210,7 +210,7 @@ To evaluate the trained language model separately, run:
 python -m training.evaluate --checkpoint checkpoints/tkc_ai_instruct.pt --data data/evaluation/reasoning_smoke.jsonl
 ~~~
 
-This small exact-answer score currently includes 13 held-out examples spanning arithmetic, logic, sequences, percentages, averages, comparisons and ratios. It measures the trained language model only; it is not a broad measure of intelligence or generalization. Keep future evaluation data separate from every training dataset. The checkpoint-free symbolic engine is separately checked against the same held-out examples by the unit test `test_reasoning_dataset.py`. You can also run its score report without any model checkpoint:
+This small exact-answer score currently includes 14 held-out examples spanning arithmetic, logic, sequences, percentages, averages, comparisons and ratios. It measures the trained language model only; it is not a broad measure of intelligence or generalization. Keep future evaluation data separate from every training dataset. The checkpoint-free symbolic engine is separately checked against the same held-out examples by the unit test `test_reasoning_dataset.py`. You can also run its score report without any model checkpoint:
 
 ## Tests
 
