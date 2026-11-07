@@ -130,7 +130,7 @@ Pass only datasets that exist. The data argument accepts one or more JSONL files
 
 ## Teach TKC-AI
 
-During chat, you can save a fact with `/teach Chủ đề | Nội dung đã kiểm chứng` or save a reviewed training pair with `/example Câu hỏi | Câu trả lời đã kiểm chứng`. The CLI commands below provide the same functionality.
+During chat, use `/status` to inspect actual capabilities, `/help` to list commands, `/teach Chủ đề | Nội dung | Nguồn` to save a fact with provenance, or `/example Câu hỏi | Câu trả lời đã kiểm chứng` to save a reviewed training pair. The CLI commands below provide the same functionality.
 
 A fact or lesson can be saved to retrieval memory:
 
@@ -144,7 +144,7 @@ A reviewed question/answer pair can be saved to the next SFT dataset:
 python -m brain.teach --prompt "Python dùng gì để xác định khối lệnh?" --answer "Python dùng thụt lề." --topic Python
 ~~~
 
-Important: a saved fact is retrieved as external memory; it does not change model weights. A saved Q&A example changes model behavior only after it is included in a later SFT run. Review answers and sources before teaching them.
+Important: a saved fact is retrieved as external memory; it does not change model weights. The `/status` command reports whether a checkpoint is loaded, whether web search is configured, and how many notes and supervised examples are stored. A saved Q&A example changes model behavior only after it is included in a later SFT run. Review answers and sources before teaching them.
 
 ## Chat with the staged agent
 
