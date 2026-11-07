@@ -141,6 +141,18 @@ def _solve_word_problem(text):
 
 def _solve_arithmetic(text):
     normalized = text.casefold()
+    # Dates such as 2026/11/07 are not arithmetic expressions.
+    if re.search(r"\b\d{4}[/-]\d{1,2}[/-]\d{1,2}\b", normalized):
+        return None
+    math_intent = any(
+        term in normalized
+        for term in (
+            "tính", "phép tính", "kết quả", "bao nhiêu", "cộng",
+            "trừ", "nhân", "chia", "mũ", "calculate", "what is",
+        )
+    ) or "?" in normalized or "=" in normalized
+    if not math_intent:
+        return None
     replacements = (
         (r"\bchia\s+lấy\s+dư\b", "%"),
         (r"\bchia\s+cho\b", "/"),
