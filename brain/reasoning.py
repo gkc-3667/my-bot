@@ -303,9 +303,10 @@ def _solve_conditional_chain(text):
     rules = []
     facts = set()
     target = None
+    asks_for_inference = False
     question_markers = (
         "có thể kết luận", "có suy ra", "suy ra gì", "kết luận gì",
-        "có chắc chắn", "có phải", "vì sao", "tại sao",
+        "có chắc chắn", "liệu",
     )
 
     for raw_sentence in raw_sentences:
@@ -331,13 +332,16 @@ def _solve_conditional_chain(text):
         if is_question:
             if target_match:
                 target = _normalize_proposition(target_match.group(1))
+                asks_for_inference = True
+            elif any(marker in sentence for marker in question_markers):
+                asks_for_inference = True
             continue
 
         fact = _normalize_proposition(sentence)
         if fact:
             facts.add(fact)
 
-    if len(rules) < 2:
+    if len(rules) < 2 or not asks_for_inference:
         return None
 
     if not facts:
