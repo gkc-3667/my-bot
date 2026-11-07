@@ -44,13 +44,54 @@ def handle_learning_command(agent, question):
     """Handle explicit, reviewable teaching commands in interactive chat."""
     if question.startswith("/teach "):
         payload = question[len("/teach "):]
-        topic, separator, fact = payload.partition("|")
-        if not separator or not fact.strip():
-            print("Cách dùng: /teach Chủ đề | Nội dung đã kiểm chứng")
+        parts = [part.strip() for part in payload.split("|", 2)]
+        if len(parts) < 2 or not parts[1]:
+            print("Cách dùng: /teach Chủ đề | Nội dung | Nguồn (tùy chọn)")
             return True
-        item_id = agent.memory.add(fact.strip(), topic=topic.strip())
+        topic, fact = parts[0], parts[1]
+        source = parts[2] if len(parts) > 2 else ""
+        item_id = agent.memory.add(
+            fact, topic=topic, source=source
+        )
         print(f"Đã lưu ghi chú #{item_id} vào bộ nhớ truy xuất.")
+        print(f"Nguồn: {source or 'chưa ghi nguồn'}")
         print("Ghi chú này chưa cập nhật trọng số mô hình.")
+        return True
+
+    if question == "/status":
+        checkpoint_state = (
+            "đã nạp checkpoint"
+            if agent.model is not None
+            else "chưa có checkpoint; mô hình ngôn ngữ chưa được huấn luyện"
+        )
+        web_state = (
+            "đã nạp thư viện tìm kiếm; vẫn cần mạng khi tra cứu"
+            if agent.search_provider is not None
+            else "chưa khả dụng (" + (agent.search_setup_error or "thiếu thư viện") + ")"
+        )
+        memory_count = agent.memory.count()
+        example_path = Path("data/learned_examples.jsonl")
+        example_count = 0
+        if example_path.is_file():
+            example_count = sum(
+                1 for line in example_path.read_text(encoding="utf-8").splitlines()
+                if line.strip()
+            )
+        print("\nTrạng thái TKC-AI:")
+        print(f"- Mô hình ngôn ngữ: {checkpoint_state}.")
+        print("- Suy luận quy tắc: đang bật; chỉ giải các dạng đã hỗ trợ.")
+        print(f"- Tìm kiếm web: {web_state}.")
+        print(f"- Ghi chú đã dạy: {memory_count}.")
+        print(f"- Ví dụ chờ fine-tune: {example_count}.")
+        print("- Viết mã: sinh mã bằng mô hình đã huấn luyện; chưa có sandbox thực thi.")
+        return True
+
+    if question in {"/help", "help"}:
+        print("Các lệnh TKC-AI:")
+        print("- /status: xem năng lực hiện tại.")
+        print("- /teach Chủ đề | Nội dung | Nguồn: lưu ghi chú.")
+        print("- /example Câu hỏi | Câu trả lời: lưu ví dụ cho lần fine-tune sau.")
+        print("- thoát: kết thúc chat.")
         return True
 
     if question.startswith("/example "):
@@ -128,7 +169,7 @@ def main():
             print_response(agent.reply(args.question, args.max_new_tokens))
         return
 
-    print("Lệnh dạy: /teach Chủ đề | Nội dung")
+    print("Lệnh: /status, /help, /teach Chủ đề | Nội dung | Nguồn, /example Câu hỏi | Câu trả lời")
     print("Lệnh thêm ví dụ học: /example Câu hỏi | Câu trả lời")
     while True:
         try:
