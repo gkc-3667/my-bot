@@ -1,7 +1,8 @@
 """A staged assistant pipeline for TKC-AI.
 
-The pipeline provides orchestration, not intelligence by itself. Its quality
-depends on a trained TKC-AI checkpoint, data, compute, and evaluation.
+A deterministic solver handles supported math/logic questions. Other questions
+can use a trained language model, web retrieval, and taught knowledge. The
+orchestration is not a substitute for training a capable foundation model.
 """
 from dataclasses import dataclass, field
 
@@ -9,6 +10,7 @@ import torch
 
 from brain.generate import generate
 from brain.knowledge import KnowledgeBase
+from brain.reasoning import solve_question
 from brain.research import DDGSSearchProvider
 from brain.tokenizer import EOS_ID, ByteTokenizer
 
@@ -38,6 +40,10 @@ class AgentResponse:
     sources: list = field(default_factory=list)
     memory_hits: list = field(default_factory=list)
     warnings: list = field(default_factory=list)
+    reasoning_method: str = ""
+    reasoning_steps: list = field(default_factory=list)
+    reasoning_confidence: float = 0.0
+    model_used: bool = False
 
 
 def classify_task(question):
@@ -78,8 +84,8 @@ def _plan_for(mode):
 class ResearchAgent:
     def __init__(
         self,
-        model,
-        device,
+        model=None,
+        device="cpu",
         tokenizer=None,
         memory=None,
         search_provider=None,
@@ -99,6 +105,8 @@ class ResearchAgent:
                 self.search_setup_error = str(error)
 
     def _complete(self, prompt, max_new_tokens):
+        if self.model is None:
+            raise RuntimeError("A trained TKC-AI checkpoint is not loaded.")
         context_limit = self.model.position_embedding.num_embeddings
         if context_limit < 2:
             raise ValueError("The model context window must be at least 2 tokens.")
@@ -117,6 +125,25 @@ class ResearchAgent:
         )
         return self.tokenizer.decode(output_ids[len(prompt_ids):]).strip()
 
+    def _search(self, question):
+        if self.search_provider is None:
+            return [], self.search_setup_error or "Web search provider is unavailable."
+        try:
+            results = self.search_provider.search(
+                question, max_results=self.max_search_results
+            )
+            if not results:
+                return [], "Tìm kiếm không trả về kết quả phù hợp."
+            return results, ""
+        except Exception as error:
+            return [], f"Web search failed: {type(error).__name__}: {error}"
+
+    def _retrieve_memory(self, question):
+        try:
+            return self.memory.search(question, limit=4), ""
+        except Exception as error:
+            return [], f"Knowledge retrieval failed: {type(error).__name__}: {error}"
+
     def reply(self, question, max_new_tokens=160):
         question = str(question).strip()
         if not question:
@@ -124,14 +151,96 @@ class ResearchAgent:
 
         mode = classify_task(question)
         search_requested = needs_web_search(question)
-        plan = _plan_for("research" if search_requested else mode)
+
+        # Stage 1: use an independently checkable solver before asking the LM.
+        symbolic = solve_question(question)
+        if symbolic is not None and not search_requested:
+            return AgentResponse(
+                answer=symbolic.answer,
+                mode=mode,
+                reasoning_method=symbolic.method,
+                reasoning_steps=list(symbolic.steps),
+                reasoning_confidence=symbolic.confidence,
+                model_used=False,
+            )
+
+        # Stage 2: retrieve current information and taught notes when relevant.
         warnings = []
         sources = []
-        memory_items = []
+        memory_items, memory_error = self._retrieve_memory(question)
+        if memory_error:
+            warnings.append(memory_error)
+
         web_context = "Không có dữ liệu web được truy xuất."
         memory_context = "Không tìm thấy ghi chú phù hợp."
+        if memory_items:
+            memory_context = "\n".join(
+                f"- Chủ đề: {item.topic or 'chưa phân loại'}; "
+                f"Nội dung: {item.content}; Nguồn: {item.source or 'người dùng cung cấp'}"
+                for item in memory_items
+            )
 
-        # Stage 1: form a compact plan before using tools.
+        if search_requested:
+            sources, search_error = self._search(question)
+            if search_error:
+                warnings.append(search_error)
+            elif sources:
+                web_context = "\n".join(
+                    f"[{index}] {item.title}\nURL: {item.url}\n"
+                    f"Thông tin: {item.snippet}"
+                    for index, item in enumerate(sources, 1)
+                )
+
+        # Tool-only mode is honest and useful even before any model checkpoint exists.
+        if self.model is None:
+            if sources:
+                excerpts = "\n\n".join(
+                    f"[{index}] {item.title}\n{item.snippet}"
+                    for index, item in enumerate(sources, 1)
+                )
+                answer = (
+                    "Mình đã tìm được các trích đoạn dưới đây. Đây là thông tin "
+                    "truy xuất, chưa phải phần tổng hợp và kiểm chứng của một mô hình "
+                    "ngôn ngữ đã huấn luyện:\n\n" + excerpts
+                )
+                warnings.append(
+                    "Chưa có checkpoint đã huấn luyện; TKC-AI chưa thể tổng hợp "
+                    "ngôn ngữ hoặc tự viết mã đáng tin cậy."
+                )
+                return AgentResponse(
+                    answer=answer,
+                    mode=mode,
+                    used_web=True,
+                    sources=sources,
+                    memory_hits=memory_items,
+                    warnings=warnings,
+                )
+            if memory_items:
+                answer = "Mình tìm thấy các ghi chú đã được dạy:\n" + memory_context
+                warnings.append(
+                    "Ghi chú là bộ nhớ truy xuất; chúng chưa được học vào trọng số mô hình."
+                )
+                return AgentResponse(
+                    answer=answer,
+                    mode=mode,
+                    memory_hits=memory_items,
+                    warnings=warnings,
+                )
+            answer = (
+                "Mình chưa có checkpoint được huấn luyện nên chưa thể xử lý tốt câu hỏi "
+                "tổng quát này. Hiện tại mình có thể giải một số dạng toán và logic "
+                "có cấu trúc bằng bộ suy luận kiểm chứng được; các câu hỏi kiến thức, "
+                "viết mã hoặc giải thích mở cần mô hình được huấn luyện."
+            )
+            warnings.append("Không có checkpoint; chưa sử dụng mô hình ngôn ngữ.")
+            return AgentResponse(
+                answer=answer,
+                mode=mode,
+                warnings=warnings,
+            )
+
+        # Stage 3: create a short plan, then draft and check the answer.
+        plan = _plan_for("research" if search_requested else mode)
         planning_prompt = (
             "Người dùng: Hãy lập kế hoạch ngắn, chưa trả lời câu hỏi. "
             "Chỉ nêu tối đa 3 bước và điều cần kiểm chứng. "
@@ -139,39 +248,6 @@ class ResearchAgent:
         )
         model_plan = self._complete(planning_prompt, 48)
 
-        # Stage 2: search only when the request needs fresh/external information.
-        if search_requested:
-            if self.search_provider is None:
-                warnings.append(self.search_setup_error or "Web search provider is unavailable.")
-            else:
-                try:
-                    sources = self.search_provider.search(
-                        question, max_results=self.max_search_results
-                    )
-                    if sources:
-                        web_context = "\n".join(
-                            f"[{index}] {item.title}\nURL: {item.url}\n"
-                            f"Thông tin: {item.snippet}"
-                            for index, item in enumerate(sources, 1)
-                        )
-                    else:
-                        warnings.append("Tìm kiếm không trả về kết quả phù hợp.")
-                except Exception as error:
-                    warnings.append(f"Web search failed: {type(error).__name__}: {error}")
-
-        # Stage 3: retrieve notes/examples the user explicitly taught the system.
-        try:
-            memory_items = self.memory.search(question, limit=4)
-            if memory_items:
-                memory_context = "\n".join(
-                    f"- Chủ đề: {item.topic or 'chưa phân loại'}; "
-                    f"Nội dung: {item.content}; Nguồn: {item.source or 'người dùng cung cấp'}"
-                    for item in memory_items
-                )
-        except Exception as error:
-            warnings.append(f"Knowledge retrieval failed: {type(error).__name__}: {error}")
-
-        # Stage 4: draft a solution, then run a separate self-check pass.
         mode_instruction = {
             "code": "Ưu tiên mã chạy được, chú thích, kiểm thử, xử lý lỗi và cảnh báo bảo mật.",
             "tutoring": "Dạy dễ hiểu theo từng bước, có ví dụ và bài tập nhỏ.",
@@ -198,8 +274,6 @@ class ResearchAgent:
         )
         review = self._complete(review_prompt, 64)
 
-        # Stage 5: preserve the question at the end of the prompt so it survives
-        # truncation in the current short byte-token context window.
         final_prompt = (
             "Người dùng: Hãy đưa ra câu trả lời cuối cùng. "
             "Không bịa nguồn hoặc số liệu; nếu thiếu dữ kiện, hãy nói rõ. "
@@ -215,9 +289,7 @@ class ResearchAgent:
         )
         answer = self._complete(final_prompt, max_new_tokens)
         if not answer:
-            warnings.append(
-                "Mô hình chưa tạo được câu trả lời. Cần checkpoint đã huấn luyện và dữ liệu tốt hơn."
-            )
+            warnings.append("Mô hình chưa tạo được câu trả lời.")
         return AgentResponse(
             answer=answer,
             mode=mode,
@@ -225,4 +297,5 @@ class ResearchAgent:
             sources=sources,
             memory_hits=memory_items,
             warnings=warnings,
+            model_used=True,
         )
