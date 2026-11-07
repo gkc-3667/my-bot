@@ -53,6 +53,7 @@ training/
   train.py         # pretraining, separate validation, atomic save and full-state resume
   sft.py           # response-only supervised instruction tuning; accepts many JSONL files
   evaluate.py      # exact-answer smoke evaluation on held-out model outputs
+  evaluate_symbolic.py # score the deterministic rule-based reasoner
   build_reasoning_curriculum.py # generate synthetic, solver-verified SFT examples
 tests/
   test_agent_memory.py
@@ -186,10 +187,16 @@ Synthetic examples teach narrow task formats only. They are not a general knowle
 The held-out evaluation examples are kept separate from training data. After a checkpoint exists, run:
 
 ~~~bash
+python -m training.evaluate_symbolic --data data/evaluation/reasoning_smoke.jsonl
+~~~
+
+To evaluate the trained language model separately, run:
+
+~~~bash
 python -m training.evaluate --checkpoint checkpoints/tkc_ai_instruct.pt --data data/evaluation/reasoning_smoke.jsonl
 ~~~
 
-This small exact-answer score measures the trained language model only; it is not a broad measure of intelligence or generalization. Keep future evaluation data separate from every training dataset. The checkpoint-free symbolic engine is separately checked against the same held-out examples by the unit test `test_reasoning_dataset.py`.
+This small exact-answer score measures the trained language model only; it is not a broad measure of intelligence or generalization. Keep future evaluation data separate from every training dataset. The checkpoint-free symbolic engine is separately checked against the same held-out examples by the unit test `test_reasoning_dataset.py`. You can also run its score report without any model checkpoint:
 
 ## Tests
 
@@ -199,7 +206,7 @@ Run the project's unit tests with:
 python -m unittest discover -s tests
 ~~~
 
-GitHub Actions is configured to run the unit tests on pushes and pull requests. The workflow has passed on the repository's previous main revision; each new push triggers another run. A passing unit-test suite validates tested code paths, not training quality or broad reasoning ability. No end-to-end model-quality result is claimed.
+GitHub Actions is configured to run the unit tests on pushes and pull requests. Each push to main or pull request triggers a test run. A passing unit-test suite validates tested code paths, not training quality or broad reasoning ability. No end-to-end model-quality result is claimed.
 
 The symbolic engine has real but narrow reasoning ability: it applies explicit rules and arithmetic, solves supported first-degree equations and returns checkable steps. It does not have consciousness or unrestricted human-like thought, and it cannot solve arbitrary language, factual, scientific or programming questions.
 
