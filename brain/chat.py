@@ -6,17 +6,20 @@ import torch
 
 from brain.agent import ResearchAgent
 from brain.knowledge import KnowledgeBase
+from brain.llm import OpenAICompatibleProvider
 from brain.transformer import AIConfig, TKCAI
 
 
 def load_agent(checkpoint_path, memory_path):
     memory = KnowledgeBase(memory_path)
+    provider = OpenAICompatibleProvider.from_env()
     checkpoint = Path(checkpoint_path)
     if not checkpoint.is_file():
         return ResearchAgent(
             model=None,
             device="cpu",
             memory=memory,
+            llm_provider=provider,
         )
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -37,6 +40,7 @@ def load_agent(checkpoint_path, memory_path):
         device=device,
         memory=memory,
         max_search_results=5,
+        llm_provider=provider,
     )
 
 
@@ -59,10 +63,15 @@ def handle_learning_command(agent, question):
         return True
 
     if question == "/status":
+        provider = getattr(agent, "llm_provider", None)
         checkpoint_state = (
-            "đã nạp checkpoint"
-            if agent.model is not None
-            else "chưa có checkpoint; mô hình ngôn ngữ chưa được huấn luyện"
+            f"đã kết nối mô hình API: {getattr(provider, 'model', 'không rõ tên')}"
+            if provider is not None
+            else (
+                "đã nạp checkpoint cục bộ"
+                if agent.model is not None
+                else "chưa có mô hình ngôn ngữ; chỉ dùng công cụ và bộ suy luận quy tắc"
+            )
         )
         web_state = (
             "đã nạp thư viện tìm kiếm; vẫn cần mạng khi tra cứu"
@@ -88,8 +97,8 @@ def handle_learning_command(agent, question):
         print(f"- Tìm kiếm web: {web_state}.")
         print(f"- Ghi chú đã dạy: {memory_count}.")
         print(f"- Ví dụ chờ fine-tune: {example_count}.")
-        if agent.model is None:
-            print("- Viết mã: chưa thể sinh mã tổng quát vì chưa có checkpoint ngôn ngữ.")
+        if not (provider is not None or agent.model is not None):
+            print("- Viết mã: chưa có mô hình ngôn ngữ để sinh mã tổng quát.")
         else:
             print("- Viết mã: mô hình có thể tạo mã; chưa có sandbox thực thi hoặc kiểm thử tự động.")
         return True
@@ -172,14 +181,18 @@ def main():
     except (ValueError, RuntimeError, KeyError) as error:
         parser.error(f"Cannot load checkpoint: {error}")
 
-    if agent.model is None:
+    if agent.llm_provider is not None:
+        print(
+            f"GKC-AI đã kết nối mô hình ngôn ngữ API: {agent.llm_provider.model}. "
+            "Có thể trò chuyện nhiều lượt; gõ 'thoát' để kết thúc."
+        )
+    elif agent.model is not None:
+        print("GKC-AI đã nạp checkpoint cục bộ. Có thể nhập câu hỏi hoặc gõ 'thoát'.")
+    else:
         print(
             "GKC-AI đang chạy chế độ suy luận quy tắc + bộ nhớ + tra cứu web. "
-            "Chưa có checkpoint ngôn ngữ đã huấn luyện; các câu hỏi tổng quát "
-            "sẽ được báo rõ là ngoài khả năng hiện tại."
+            "Chưa có mô hình ngôn ngữ; câu hỏi tổng quát sẽ bị giới hạn."
         )
-    else:
-        print("GKC-AI đã nạp checkpoint. Có thể nhập câu hỏi hoặc gõ 'thoát'.")
 
     if args.question:
         if not handle_learning_command(agent, args.question):
