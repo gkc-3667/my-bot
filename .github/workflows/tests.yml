@@ -1,4 +1,4 @@
-name: TKC-AI tests
+name: GKC-AI tests
 
 on:
   push:
