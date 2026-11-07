@@ -249,6 +249,8 @@ def _solve_syllogism(text):
         if match:
             universal = tuple(part.strip() for part in match.groups())
             continue
+        if "có phải" in statement:
+            continue
         match = re.search(r"^(.+?)\s+là\s+(.+)$", statement.strip())
         if match:
             identity = tuple(part.strip() for part in match.groups())
