@@ -321,7 +321,8 @@ def _solve_conditional_chain(text):
             continue
 
         target_match = re.fullmatch(
-            r"(?:có thể kết luận|có suy ra|suy ra)\s+(?:được\s+)?(.+?)\s+không",
+            r"(?:có thể kết luận|có suy ra|suy ra|có chắc chắn|liệu)"
+            r"\s+(?:được\s+)?(.+?)\s+không",
             sentence,
         )
         is_question = "?" in raw_sentence or any(
