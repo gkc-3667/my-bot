@@ -16,6 +16,39 @@ import torch
 from brain.tokenizer import ByteTokenizer, VOCAB_SIZE
 from brain.transformer import AIConfig, TKCAI
 
+TRAINING_PRESETS = {
+    # Conservative starting point for CPU-only machines with 4 cores / 16 GB RAM.
+    "cpu-small": {
+        "vocab_size": VOCAB_SIZE,
+        "max_seq_len": 256,
+        "d_model": 128,
+        "n_heads": 4,
+        "n_layers": 4,
+        "dropout": 0.1,
+    },
+    "standard": {
+        "vocab_size": VOCAB_SIZE,
+        "max_seq_len": 256,
+        "d_model": 256,
+        "n_heads": 8,
+        "n_layers": 6,
+        "dropout": 0.1,
+    },
+}
+
+
+def apply_training_preset(config, preset):
+    """Apply a documented model size before initializing random weights."""
+    if preset not in TRAINING_PRESETS:
+        raise ValueError(f"Unknown training preset: {preset}")
+    for name, value in TRAINING_PRESETS[preset].items():
+        setattr(config, name, value)
+    if config.d_model % config.n_heads:
+        raise ValueError("d_model must be divisible by n_heads")
+    return config
+
+
+
 
 def load_corpus(folder):
     paths = sorted(Path(folder).rglob("*.txt"))
@@ -208,6 +241,10 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--data", default="data/training_data")
     parser.add_argument(
+        "--preset", choices=("cpu-small", "standard"), default=None,
+        help="New-run model size; defaults to cpu-small. Resume uses saved config.",
+    )
+    parser.add_argument(
         "--steps", type=int, default=1000,
         help="Total target step, not additional steps when resuming.",
     )
@@ -249,6 +286,8 @@ def main():
 
     config = AIConfig()
     if resume_state is not None:
+        if args.preset is not None:
+            parser.error("--preset cannot be changed while resuming; checkpoint config is restored")
         for key, value in resume_state["config"].items():
             if hasattr(config, key):
                 setattr(config, key, value)
@@ -265,11 +304,14 @@ def main():
             else resume_state.get("batch_size", 4)
         )
     else:
-        config.vocab_size = VOCAB_SIZE
-        config.max_seq_len = args.seq_len if args.seq_len is not None else 256
+        preset = args.preset or "cpu-small"
+        apply_training_preset(config, preset)
+        if args.seq_len is not None:
+            config.max_seq_len = args.seq_len
         val_fraction = args.val_fraction if args.val_fraction is not None else 0.05
         seed = args.seed if args.seed is not None else 42
-        batch_size = args.batch_size if args.batch_size is not None else 4
+        default_batch_size = 2 if preset == "cpu-small" else 4
+        batch_size = args.batch_size if args.batch_size is not None else default_batch_size
 
     if config.vocab_size != VOCAB_SIZE:
         parser.error("Checkpoint vocabulary does not match the current ByteTokenizer")

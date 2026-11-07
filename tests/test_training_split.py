@@ -4,7 +4,8 @@ from types import SimpleNamespace
 
 import torch
 
-from training.train import evaluate, split_tokens
+from brain.transformer import AIConfig
+from training.train import apply_training_preset, evaluate, split_tokens
 
 
 class _MeanTokenModel:
@@ -62,6 +63,27 @@ class TrainingSplitTests(unittest.TestCase):
         self.assertEqual(first, second)
         self.assertEqual(actual_next_random, expected_next_random)
         self.assertTrue(model.training)
+
+
+    def test_cpu_small_preset_is_conservative_and_valid(self):
+        config = apply_training_preset(AIConfig(), "cpu-small")
+        self.assertEqual(config.vocab_size, 259)
+        self.assertEqual(config.d_model, 128)
+        self.assertEqual(config.n_heads, 4)
+        self.assertEqual(config.n_layers, 4)
+        self.assertEqual(config.max_seq_len, 256)
+        self.assertEqual(config.d_model % config.n_heads, 0)
+
+    def test_standard_preset_preserves_original_model_dimensions(self):
+        config = apply_training_preset(AIConfig(), "standard")
+        self.assertEqual(config.d_model, 256)
+        self.assertEqual(config.n_heads, 8)
+        self.assertEqual(config.n_layers, 6)
+
+    def test_unknown_training_preset_is_rejected(self):
+        with self.assertRaisesRegex(ValueError, "Unknown training preset"):
+            apply_training_preset(AIConfig(), "huge")
+
 
 
 if __name__ == "__main__":
