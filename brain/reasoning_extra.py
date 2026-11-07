@@ -126,6 +126,38 @@ def solve_extended_question(question):
                     ),
                 )
 
+    # Divide a total into parts according to a positive integer ratio.
+    match = re.search(
+        rf"(?:chia\s+({_NUMBER})\s+theo\s+tỉ\s+lệ\s+|"
+        rf"tổng\s+({_NUMBER})\s+(?:được\s+)?chia\s+theo\s+tỉ\s+lệ\s+)"
+        r"(\d+)\s*[:/]\s*(\d+)",
+        text,
+    )
+    if match:
+        total_text = match.group(1) or match.group(2)
+        total = _number(total_text)
+        first_ratio, second_ratio = int(match.group(3)), int(match.group(4))
+        ratio_sum = first_ratio + second_ratio
+        if total >= 0 and first_ratio > 0 and second_ratio > 0 and ratio_sum > 0:
+            unit = total / ratio_sum
+            first_part = unit * first_ratio
+            second_part = unit * second_ratio
+            if all(math.isfinite(value) for value in (unit, first_part, second_part)):
+                return ExtendedReasoningResult(
+                    answer=(
+                        f"Hai phần lần lượt là {_fmt(first_part)} và "
+                        f"{_fmt(second_part)}."
+                    ),
+                    method="Chia đại lượng theo tỉ lệ",
+                    steps=(
+                        f"Tổng số phần tỉ lệ = {first_ratio} + {second_ratio} = {ratio_sum}.",
+                        f"Một phần = {_fmt(total)} ÷ {ratio_sum} = {_fmt(unit)}.",
+                        f"Phần thứ nhất = {first_ratio} × {_fmt(unit)} = {_fmt(first_part)}.",
+                        f"Phần thứ hai = {second_ratio} × {_fmt(unit)} = {_fmt(second_part)}.",
+                        f"Kiểm tra: {_fmt(first_part)} + {_fmt(second_part)} = {_fmt(total)}.",
+                    ),
+                )
+
     # Compare exactly two explicitly named numbers.
     if "so sánh" in text:
         match = re.search(rf"({_NUMBER})\s+(?:và|với)\s+({_NUMBER})", text)
