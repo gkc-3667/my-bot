@@ -55,6 +55,7 @@ tests/
   test_generation.py
   test_sft_data.py
   test_evaluation.py
+  test_training_split.py
 data/
   reasoning_examples.jsonl
   evaluation/reasoning_smoke.jsonl
@@ -85,7 +86,13 @@ Add UTF-8 .txt files that you own or are licensed to use under data/training_dat
 python -m training.train --steps 100 --seq-len 128 --batch-size 2
 ~~~
 
-This creates checkpoints/tkc_ai_latest.pt. A tiny corpus only checks that training runs; it does not teach broad language ability.
+This creates checkpoints/tkc_ai_latest.pt. The last 5% of tokens are reserved for a separate validation partition by default. Training now stops with a clear error if either partition is too short for a sequence window; it never silently reuses training tokens as validation data. For a short smoke-test corpus, reduce --seq-len or increase --val-fraction (which must remain below 0.5), for example:
+
+~~~bash
+python -m training.train --steps 10 --seq-len 32 --batch-size 2 --val-fraction 0.2
+~~~
+
+Validation samples are repeatable and do not consume the random-number stream used for training. A small corpus can check the pipeline only; it will not teach broad language ability.
 
 ## Stage 2: instruction tuning
 
