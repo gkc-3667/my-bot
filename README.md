@@ -16,11 +16,12 @@ The repository does not use pretrained model weights.
 - [x] Curated Q&A examples saved for later supervised fine-tuning
 - [x] Code-writing and tutoring response modes
 - [x] Interactive chat entry point and EOS-aware generation
-- [x] Unit tests for routing, memory, generation and SFT data loading
+- [x] Held-out reasoning smoke set and an exact-answer evaluation script
+- [x] GitHub Actions workflow for running unit tests
 - [ ] Train a more efficient BPE tokenizer from our own corpus
 - [ ] Build a large, licensed, high-quality multilingual corpus
 - [ ] Expand verified instruction/reasoning/code data substantially
-- [ ] Add independent evaluation suites for knowledge, logic, math, coding and safety
+- [ ] Add independent, broader evaluation suites for knowledge, logic, math, coding and safety
 - [ ] Improve context length and model efficiency
 - [ ] Serve the model through a secured API
 - [ ] Connect a Discord bot
@@ -48,14 +49,19 @@ brain/
 training/
   train.py         # next-token pretraining, validation and checkpointing
   sft.py           # response-only supervised instruction tuning; accepts many JSONL files
+  evaluate.py      # exact-answer smoke evaluation on held-out examples
 tests/
   test_agent_memory.py
   test_generation.py
   test_sft_data.py
+  test_evaluation.py
 data/
   reasoning_examples.jsonl
+  evaluation/reasoning_smoke.jsonl
   learned_examples.jsonl  # created when reviewed Q&A examples are taught
   knowledge.sqlite3       # created when facts are taught
+.github/workflows/
+  tests.yml               # run unit tests on pushes and pull requests
 checkpoints/
   .gitkeep
 ~~~
@@ -125,6 +131,16 @@ python -m brain.chat --checkpoint checkpoints/tkc_ai_instruct.pt --question "Giá
 
 Web search is only one evidence source; verify important claims using primary sources. Search results are treated as untrusted data, not instructions.
 
+## Independent reasoning smoke evaluation
+
+The held-out evaluation examples are kept separate from training data. After a checkpoint exists, run:
+
+~~~bash
+python -m training.evaluate --checkpoint checkpoints/tkc_ai_instruct.pt --data data/evaluation/reasoning_smoke.jsonl
+~~~
+
+This small exact-answer score helps catch regressions; it is not a broad measure of intelligence or generalization. Keep future evaluation data separate from every training dataset.
+
 ## Tests
 
 Run the project's unit tests with:
@@ -133,6 +149,6 @@ Run the project's unit tests with:
 python -m unittest discover -s tests
 ~~~
 
-The tests are included in the repository, but they must still be run in the target Python/PyTorch environment. No training run or end-to-end chat-quality evaluation is claimed by this commit.
+GitHub Actions is configured to run the unit tests on pushes and pull requests. The tests are included in the repository, but this commit does not claim that they have passed in a target Python/PyTorch environment. No training run or end-to-end chat-quality evaluation is claimed.
 
 Generated quality depends on the training corpus, context length, compute, and evaluation. The starter byte tokenizer is inefficient and should later be replaced with a corpus-trained tokenizer.
