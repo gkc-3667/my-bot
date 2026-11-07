@@ -338,12 +338,109 @@ def _solve_weekday(text):
     )
 
 
+def _linear_polynomial(node):
+    """Return (coefficient_of_x, constant) for a linear expression AST."""
+    if isinstance(node, ast.Expression):
+        return _linear_polynomial(node.body)
+    if isinstance(node, ast.Constant) and type(node.value) in (int, float):
+        return 0.0, float(node.value)
+    if isinstance(node, ast.Name) and node.id == "x":
+        return 1.0, 0.0
+    if isinstance(node, ast.UnaryOp) and type(node.op) in _UNARY_OPERATORS:
+        coefficient, constant = _linear_polynomial(node.operand)
+        sign = 1.0 if isinstance(node.op, ast.UAdd) else -1.0
+        return coefficient * sign, constant * sign
+    if isinstance(node, ast.BinOp) and isinstance(node.op, (ast.Add, ast.Sub)):
+        left_a, left_b = _linear_polynomial(node.left)
+        right_a, right_b = _linear_polynomial(node.right)
+        sign = 1.0 if isinstance(node.op, ast.Add) else -1.0
+        return left_a + sign * right_a, left_b + sign * right_b
+    if isinstance(node, ast.BinOp) and isinstance(node.op, ast.Mult):
+        left_a, left_b = _linear_polynomial(node.left)
+        right_a, right_b = _linear_polynomial(node.right)
+        if left_a != 0 and right_a != 0:
+            raise ValueError("Non-linear equation is outside the supported solver.")
+        return (
+            left_a * right_b + right_a * left_b,
+            left_b * right_b,
+        )
+    if isinstance(node, ast.BinOp) and isinstance(node.op, ast.Div):
+        left_a, left_b = _linear_polynomial(node.left)
+        right_a, right_b = _linear_polynomial(node.right)
+        if right_a != 0 or right_b == 0:
+            raise ValueError("Division by a variable or zero is unsupported.")
+        return left_a / right_b, left_b / right_b
+    if isinstance(node, ast.BinOp) and isinstance(node.op, ast.Pow):
+        base_a, base_b = _linear_polynomial(node.left)
+        exponent_a, exponent_b = _linear_polynomial(node.right)
+        if exponent_a != 0 or exponent_b not in (0, 1):
+            raise ValueError("Only powers zero and one are supported.")
+        if exponent_b == 0:
+            return 0.0, 1.0
+        return base_a, base_b
+    raise ValueError("Unsupported expression in linear equation.")
+
+
+def _solve_linear_equation(text):
+    if not any(term in text.casefold() for term in ("phương trình", "giải pt", "solve")):
+        return None
+    match = re.search(
+        r"([0-9xX\s.+*/^()\-]+)\s*=\s*([0-9xX\s.+*/^()\-]+)",
+        text,
+    )
+    if not match:
+        return None
+
+    def parse_side(side):
+        expression = side.casefold().replace("^", "**")
+        expression = re.sub(r"(?<=\d)\s*x\b", "*x", expression)
+        expression = re.sub(r"(?<=\))\s*x\b", "*x", expression)
+        expression = re.sub(r"\bx\b", "x", expression)
+        if len(expression) > 100:
+            raise ValueError("Equation side is too long.")
+        return _linear_polynomial(ast.parse(expression, mode="eval"))
+
+    try:
+        left = parse_side(match.group(1))
+        right = parse_side(match.group(2))
+    except (SyntaxError, ValueError, OverflowError, ZeroDivisionError):
+        return None
+
+    coefficient = left[0] - right[0]
+    constant = left[1] - right[1]
+    if abs(coefficient) < 1e-12:
+        return None
+
+    solution = -constant / coefficient
+    if not math.isfinite(solution) or abs(solution) > 1e100:
+        return None
+
+    check_left = left[0] * solution + left[1]
+    check_right = right[0] * solution + right[1]
+    if not math.isclose(check_left, check_right, rel_tol=1e-9, abs_tol=1e-9):
+        return None
+    answer_value = _format_number(solution)
+    return ReasoningResult(
+        answer=f"Nghiệm là x = {answer_value}.",
+        method="Giải phương trình bậc nhất và thế nghiệm để kiểm tra",
+        steps=(
+            f"Vế trái có dạng { _format_number(left[0]) }x + {_format_number(left[1])}.",
+            f"Vế phải có dạng { _format_number(right[0]) }x + {_format_number(right[1])}.",
+            f"Chuyển vế: {_format_number(coefficient)}x = {_format_number(-constant)}.",
+            f"Chia hai vế: x = {_format_number(solution)}.",
+            f"Thế lại: vế trái = {_format_number(check_left)}, "
+            f"vế phải = {_format_number(check_right)}.",
+        ),
+    )
+
+
 def solve_question(question):
     """Return a checkable solution when a supported reasoning pattern is found."""
     text = str(question).strip()
     if not text:
         return None
     solvers = (
+        _solve_linear_equation,
         _solve_word_problem,
         _solve_syllogism,
         _solve_conditional,
