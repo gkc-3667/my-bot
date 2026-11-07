@@ -119,6 +119,12 @@ def build_examples(count_per_type=100, seed=42):
             f"{consequent.capitalize()} không. Có thể kết luận gì?"
         )
 
+        remainder = rng.randrange(2)
+        add(
+            f"Một số chia cho 2 dư {remainder}. "
+            "Số đó có phải là số chẵn không?"
+        )
+
         tomorrow_index = rng.randrange(len(WEEKDAYS))
         add(
             f"Ngày mai là {WEEKDAYS[tomorrow_index].title()}. "
