@@ -6,3 +6,4 @@
 {"prompt":"Có 12 chiếc bánh chia đều cho 3 người. Mỗi người nhận mấy chiếc?","expected":["4"]}
 {"prompt":"Một số chia cho 2 dư 1. Số đó có phải số chẵn không?","expected":["Không"]}
 {"prompt":"Ngày mai là thứ Năm. Hôm nay là thứ mấy?","expected":["Thứ Tư"]}
+{"prompt":"Nếu trời mưa thì đường ướt. Nếu đường ướt thì xe dễ trượt. Trời mưa. Có thể kết luận gì?","expected":["xe dễ trượt"]}
