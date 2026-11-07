@@ -302,7 +302,7 @@ def _normalize_proposition(value):
 def _split_conjunctive_propositions(value):
     """Split simple Vietnamese conjunctions into separately checkable facts."""
     parts = re.split(
-        r"\\s+(?:và|đồng thời)\\s+",
+        r"\s+(?:và|đồng thời)\s+",
         _normalize_proposition(value),
     )
     return tuple(dict.fromkeys(part for part in parts if part))
@@ -310,7 +310,7 @@ def _split_conjunctive_propositions(value):
 
 def _solve_conditional_chain(text):
     """Apply bounded forward chaining, including rules with multiple premises."""
-    raw_sentences = re.findall(r"[^.!?;\\n]+[.!?;]?", str(text).casefold())
+    raw_sentences = re.findall(r"[^.!?;\n]+[.!?;]?", str(text).casefold())
     rules = []
     facts = set()
     target = None
@@ -324,7 +324,7 @@ def _solve_conditional_chain(text):
         sentence = raw_sentence.strip().strip(".!?;").strip()
         if not sentence:
             continue
-        rule_match = re.fullmatch(r"nếu\\s+(.+?)\\s+thì\\s+(.+)", sentence)
+        rule_match = re.fullmatch(r"nếu\s+(.+?)\s+thì\s+(.+)", sentence)
         if rule_match:
             antecedents = _split_conjunctive_propositions(rule_match.group(1))
             consequent = _normalize_proposition(rule_match.group(2))
@@ -334,7 +334,7 @@ def _solve_conditional_chain(text):
 
         target_match = re.fullmatch(
             r"(?:có thể kết luận|có suy ra|suy ra|có chắc chắn|liệu)"
-            r"\\s+(?:được\\s+)?(.+?)\\s+không",
+            r"\s+(?:được\s+)?(.+?)\s+không",
             sentence,
         )
         is_question = "?" in raw_sentence or any(
