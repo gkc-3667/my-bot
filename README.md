@@ -11,7 +11,8 @@ The repository does not use pretrained model weights.
 - [x] Response-only supervised instruction tuning
 - [x] Small Vietnamese reasoning-example seed for pipeline testing
 - [x] Staged assistant orchestration: plan, research, retrieve, draft, self-review, answer
-- [x] Deterministic symbolic reasoning for arithmetic, word problems, linear equations, syllogisms, conditionals, multi-step rule chains, sequences, parity and weekday logic
+- [x] Deterministic symbolic reasoning for arithmetic, percentages, averages, comparisons, word problems, linear equations, syllogisms, conditionals, multi-step rule chains, sequences, parity and weekday logic
+- [x] Local diagnostics for checkpoint, training data, PyTorch, web search, memory and reasoning readiness
 - [x] Checkable derivation steps and checkpoint-free reasoning/evidence-only chat mode
 - [x] Optional live web search through the ddgs search library
 - [x] Persistent user-taught knowledge memory (SQLite)
@@ -45,6 +46,8 @@ brain/
   generate.py      # safe checkpoint loading and EOS-aware generation
   agent.py         # staged plan -> web -> memory -> draft -> review -> answer
   reasoning.py     # deterministic reasoning, conditional chains and checkable derivations
+  reasoning_extra.py # percentage, average and comparison solvers
+  doctor.py        # inspect model readiness and local capabilities
   research.py      # optional live web-search adapter
   knowledge.py     # persistent retrieval memory and curated SFT examples
   teach.py         # save a fact or a reviewed question/answer example
@@ -182,6 +185,16 @@ python -m training.sft --checkpoint checkpoints/tkc_ai_latest.pt --data data/rea
 ~~~
 
 Synthetic examples teach narrow task formats only. They are not a general knowledge corpus and must never be mixed into the held-out evaluation set.
+
+## Check TKC-AI readiness
+
+Run a local capability report before training or debugging:
+
+~~~bash
+python -m brain.doctor
+~~~
+
+The report distinguishes a trained language-model checkpoint from the built-in symbolic solver, checks local training text, PyTorch, the optional web-search package, and SQLite memory. It does not make a live web request or claim that the language model is intelligent merely because the rule solver passes its examples.
 
 ## Independent reasoning smoke evaluation
 
