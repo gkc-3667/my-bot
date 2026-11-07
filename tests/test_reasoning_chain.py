@@ -79,6 +79,53 @@ class ConditionalChainReasoningTests(unittest.TestCase):
         self.assertIsNotNone(result)
         self.assertIn("Chưa có dữ kiện ban đầu", result.answer)
 
+    def test_conjunctive_rule_fires_when_all_facts_are_known(self):
+        result = solve_question(
+            "Nếu trời mưa và gió mạnh thì cây đổ. "
+            "Nếu cây đổ thì đường bị chặn. "
+            "Trời mưa. Gió mạnh. Có thể kết luận đường bị chặn không?"
+        )
+        self.assertIsNotNone(result)
+        self.assertIn("Có thể kết luận", result.answer)
+        self.assertIn("đường bị chặn", result.answer)
+        self.assertTrue(any("trời mưa" in step and "gió mạnh" in step for step in result.steps))
+
+    def test_conjunctive_rule_does_not_fire_when_one_fact_is_missing(self):
+        result = solve_question(
+            "Nếu trời mưa và gió mạnh thì cây đổ. "
+            "Nếu cây đổ thì đường bị chặn. "
+            "Trời mưa. Có thể kết luận đường bị chặn không?"
+        )
+        self.assertIsNotNone(result)
+        self.assertIn("Chưa đủ dữ kiện", result.answer)
+        self.assertNotIn("Có thể kết luận 'đường bị chặn'", result.answer)
+
+    def test_single_rule_with_two_premises_is_supported(self):
+        result = solve_question(
+            "Nếu A và B thì C. A. B. Có thể kết luận gì?"
+        )
+        self.assertIsNotNone(result)
+        self.assertIn("c", result.answer)
+
+    def test_conjunctive_facts_can_be_stated_in_one_sentence(self):
+        result = solve_question(
+            "Nếu trời mưa và gió mạnh thì cây đổ. "
+            "Nếu cây đổ thì đường bị chặn. "
+            "Trời mưa và gió mạnh. Có thể kết luận gì?"
+        )
+        self.assertIsNotNone(result)
+        self.assertIn("đường bị chặn", result.answer)
+
+    def test_conjunctive_chain_works_when_rules_are_reversed(self):
+        result = solve_question(
+            "Nếu cây đổ thì đường bị chặn. "
+            "Nếu trời mưa và gió mạnh thì cây đổ. "
+            "Trời mưa. Gió mạnh. Có thể kết luận đường bị chặn không?"
+        )
+        self.assertIsNotNone(result)
+        self.assertIn("Có thể kết luận", result.answer)
+        self.assertIn("đường bị chặn", result.answer)
+
 
 if __name__ == "__main__":
     unittest.main()
