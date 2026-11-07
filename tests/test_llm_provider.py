@@ -8,7 +8,7 @@ from unittest.mock import patch
 
 from brain.agent import ResearchAgent
 from brain.knowledge import KnowledgeBase
-from brain.llm import OpenAICompatibleProvider
+from brain.llm import LocalOllamaProvider
 from brain.chat import handle_learning_command
 from brain.doctor import run_diagnostics
 
@@ -25,12 +25,11 @@ class FakeProvider:
 
 
 class LLMProviderTests(unittest.TestCase):
-    def test_doctor_recognizes_configured_external_model_without_network_call(self):
+    def test_doctor_recognizes_configured_local_model_without_network_call(self):
         values = {
             "GKC_AI_MODEL": "local-test-model",
-            "GKC_AI_BASE_URL": "http://127.0.0.1:11434/v1",
-            "GKC_AI_API_KEY": "",
-        }
+            "GKC_AI_HOST": "http://127.0.0.1:11434",
+                    }
         with tempfile.TemporaryDirectory() as folder:
             with patch.dict(os.environ, values, clear=True):
                 checks = run_diagnostics(
@@ -46,7 +45,7 @@ class LLMProviderTests(unittest.TestCase):
 
     def test_from_env_returns_none_without_model(self):
         with patch.dict(os.environ, {}, clear=True):
-            self.assertIsNone(OpenAICompatibleProvider.from_env())
+            self.assertIsNone(LocalOllamaProvider.from_env())
 
     def test_from_env_reads_configuration_without_requiring_key(self):
         values = {
@@ -58,7 +57,7 @@ class LLMProviderTests(unittest.TestCase):
         with patch.dict(os.environ, values, clear=True):
             provider = OpenAICompatibleProvider.from_env()
         self.assertEqual(provider.model, "local-test")
-        self.assertEqual(provider.endpoint, "http://127.0.0.1:11434/v1/chat/completions")
+        self.assertEqual(provider.endpoint, "http://127.0.0.1:11434/api/chat")
         self.assertEqual(provider.timeout, 12)
 
     def test_complete_sends_messages_and_parses_answer(self):
@@ -76,10 +75,10 @@ class LLMProviderTests(unittest.TestCase):
         request = mocked.call_args.args[0]
         payload = json.loads(request.data.decode("utf-8"))
         self.assertEqual(payload["model"], "test-model")
-        self.assertEqual(payload["max_tokens"], 80)
-        self.assertEqual(request.get_header("Authorization"), "Bearer secret-test")
+        self.assertEqual(payload["options"]["num_predict"], 80)
+        self.assertIsNone(request.get_header("Authorization"))
 
-    def test_rejects_invalid_endpoint(self):
+    def test_rejects_non_local_endpoint(self):
         with self.assertRaises(ValueError):
             OpenAICompatibleProvider("file:///tmp/model", "test-model")
 
