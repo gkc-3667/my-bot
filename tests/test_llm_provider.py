@@ -7,10 +7,10 @@ from pathlib import Path
 from unittest.mock import patch
 
 from brain.agent import ResearchAgent
-from brain.knowledge import KnowledgeBase
-from brain.llm import LocalOllamaProvider
 from brain.chat import handle_learning_command
 from brain.doctor import run_diagnostics
+from brain.knowledge import KnowledgeBase
+from brain.llm import LocalOllamaProvider
 
 
 class FakeProvider:
@@ -24,12 +24,12 @@ class FakeProvider:
         return "Mình đã hiểu câu hỏi và có thể giải thích từng bước."
 
 
-class LLMProviderTests(unittest.TestCase):
+class LocalModelTests(unittest.TestCase):
     def test_doctor_recognizes_configured_local_model_without_network_call(self):
         values = {
             "GKC_AI_MODEL": "local-test-model",
             "GKC_AI_HOST": "http://127.0.0.1:11434",
-                    }
+        }
         with tempfile.TemporaryDirectory() as folder:
             with patch.dict(os.environ, values, clear=True):
                 checks = run_diagnostics(
@@ -47,25 +47,21 @@ class LLMProviderTests(unittest.TestCase):
         with patch.dict(os.environ, {}, clear=True):
             self.assertIsNone(LocalOllamaProvider.from_env())
 
-    def test_from_env_reads_configuration_without_requiring_key(self):
-        values = {
-            "GKC_AI_MODEL": "local-test",
-            "GKC_AI_BASE_URL": "http://127.0.0.1:11434/v1",
-            "GKC_AI_API_KEY": "",
-            "GKC_AI_TIMEOUT": "12",
-        }
+    def test_from_env_uses_local_defaults(self):
+        values = {"GKC_AI_MODEL": "local-test", "GKC_AI_TIMEOUT": "12"}
         with patch.dict(os.environ, values, clear=True):
-            provider = OpenAICompatibleProvider.from_env()
+            provider = LocalOllamaProvider.from_env()
         self.assertEqual(provider.model, "local-test")
+        self.assertEqual(provider.host, "http://127.0.0.1:11434")
         self.assertEqual(provider.endpoint, "http://127.0.0.1:11434/api/chat")
         self.assertEqual(provider.timeout, 12)
 
-    def test_complete_sends_messages_and_parses_answer(self):
+    def test_complete_sends_messages_and_parses_native_ollama_answer(self):
         response = BytesIO(json.dumps({
-            "choices": [{"message": {"content": "Xin chào từ mô hình."}}]
+            "message": {"content": "Xin chào từ mô hình."}
         }).encode("utf-8"))
-        provider = OpenAICompatibleProvider(
-            "https://example.invalid/v1", "test-model", "secret-test", timeout=5
+        provider = LocalOllamaProvider(
+            "http://127.0.0.1:11434", "test-model", timeout=5
         )
         with patch("brain.llm.urlopen", return_value=response) as mocked:
             answer = provider.complete(
@@ -75,12 +71,14 @@ class LLMProviderTests(unittest.TestCase):
         request = mocked.call_args.args[0]
         payload = json.loads(request.data.decode("utf-8"))
         self.assertEqual(payload["model"], "test-model")
+        self.assertFalse(payload["stream"])
         self.assertEqual(payload["options"]["num_predict"], 80)
         self.assertIsNone(request.get_header("Authorization"))
+        self.assertEqual(request.full_url, "http://127.0.0.1:11434/api/chat")
 
     def test_rejects_non_local_endpoint(self):
         with self.assertRaises(ValueError):
-            OpenAICompatibleProvider("file:///tmp/model", "test-model")
+            LocalOllamaProvider("https://example.com", "test-model")
 
     def test_reset_command_clears_conversation_context(self):
         with tempfile.TemporaryDirectory() as folder:
