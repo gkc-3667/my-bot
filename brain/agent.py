@@ -264,11 +264,13 @@ class ResearchAgent:
             messages = [{"role": "system", "content": system_message}]
             messages.extend(self.conversation_history[-12:])
             messages.append({"role": "user", "content": contextual_question})
+            provider_succeeded = False
             try:
                 answer = self.llm_provider.complete(
                     messages, max_tokens=max(1, min(int(max_new_tokens), 2048))
                 )
                 if answer:
+                    provider_succeeded = True
                     self.conversation_history.extend([
                         {"role": "user", "content": question},
                         {"role": "assistant", "content": answer},
@@ -291,7 +293,7 @@ class ResearchAgent:
                 sources=sources,
                 memory_hits=memory_items,
                 warnings=warnings,
-                model_used=bool(answer) and not warnings,
+                model_used=provider_succeeded,
             )
 
         # Tool-only mode is honest and useful even before any model checkpoint exists.
