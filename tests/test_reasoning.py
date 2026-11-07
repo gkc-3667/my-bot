@@ -91,6 +91,11 @@ class PatternReasoningTests(unittest.TestCase):
         self.assertIsNotNone(result)
         self.assertIn("32", result.answer)
 
+    def test_arithmetic_sequence_with_negative_values(self):
+        result = solve_question("Dãy số -3, -1, 1, 3, số tiếp theo là bao nhiêu?")
+        self.assertIsNotNone(result)
+        self.assertIn("5", result.answer)
+
     def test_weekday(self):
         result = solve_question("Ngày mai là thứ Năm. Hôm nay là thứ mấy?")
         self.assertIsNotNone(result)
