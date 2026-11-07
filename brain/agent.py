@@ -168,21 +168,23 @@ class ResearchAgent:
                 model_used=False,
             )
 
-        # Stage 2: retrieve current information and taught notes when relevant.
+        # Stage 1: create the plan before searching or reading external notes.
+        plan = _plan_for("research" if search_requested else mode)
+        model_plan = ""
+        if self.model is not None:
+            planning_prompt = (
+                "Người dùng: Hãy lập kế hoạch ngắn, chưa trả lời câu hỏi. "
+                "Chỉ nêu tối đa 3 bước và điều cần kiểm chứng. "
+                f"Kế hoạch nền: {plan}\nCâu hỏi: {question}\nTrợ lý:"
+            )
+            model_plan = self._complete(planning_prompt, 48)
+
+        # Stage 2: retrieve current information only after planning.
         warnings = []
         sources = []
-        memory_items, memory_error = self._retrieve_memory(question)
-        if memory_error:
-            warnings.append(memory_error)
-
+        memory_items = []
         web_context = "Không có dữ liệu web được truy xuất."
         memory_context = "Không tìm thấy ghi chú phù hợp."
-        if memory_items:
-            memory_context = "\n".join(
-                f"- Chủ đề: {item.topic or 'chưa phân loại'}; "
-                f"Nội dung: {item.content}; Nguồn: {item.source or 'người dùng cung cấp'}"
-                for item in memory_items
-            )
 
         if search_requested:
             sources, search_error = self._search(question)
@@ -194,6 +196,17 @@ class ResearchAgent:
                     f"Thông tin: {item.snippet}"
                     for index, item in enumerate(sources, 1)
                 )
+
+        # Stage 3: retrieve knowledge the user explicitly taught the system.
+        memory_items, memory_error = self._retrieve_memory(question)
+        if memory_error:
+            warnings.append(memory_error)
+        if memory_items:
+            memory_context = "\n".join(
+                f"- Chủ đề: {item.topic or 'chưa phân loại'}; "
+                f"Nội dung: {item.content}; Nguồn: {item.source or 'người dùng cung cấp'}"
+                for item in memory_items
+            )
 
         # Tool-only mode is honest and useful even before any model checkpoint exists.
         if self.model is None:
@@ -243,15 +256,7 @@ class ResearchAgent:
                 warnings=warnings,
             )
 
-        # Stage 3: create a short plan, then draft and check the answer.
-        plan = _plan_for("research" if search_requested else mode)
-        planning_prompt = (
-            "Người dùng: Hãy lập kế hoạch ngắn, chưa trả lời câu hỏi. "
-            "Chỉ nêu tối đa 3 bước và điều cần kiểm chứng. "
-            f"Kế hoạch nền: {plan}\nCâu hỏi: {question}\nTrợ lý:"
-        )
-        model_plan = self._complete(planning_prompt, 48)
-
+        # Stage 4: draft and independently check the draft.
         mode_instruction = {
             "code": "Ưu tiên mã chạy được, chú thích, kiểm thử, xử lý lỗi và cảnh báo bảo mật.",
             "tutoring": "Dạy dễ hiểu theo từng bước, có ví dụ và bài tập nhỏ.",
