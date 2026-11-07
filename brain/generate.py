@@ -56,7 +56,7 @@ def main():
     model.eval()
 
     tokenizer = ByteTokenizer()
-    prompt_text = args.prompt if args.raw_prompt else "Người dùng: " + args.prompt + "\\nTrợ lý:"
+    prompt_text = args.prompt if args.raw_prompt else "Người dùng: " + args.prompt + "\nTrợ lý:"
     prompt_ids = tokenizer.encode(prompt_text, add_special_tokens=False)
     if not prompt_ids:
         prompt_ids = [BOS_ID]
