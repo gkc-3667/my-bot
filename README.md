@@ -210,7 +210,7 @@ To evaluate the trained language model separately, run:
 python -m training.evaluate --checkpoint checkpoints/tkc_ai_instruct.pt --data data/evaluation/reasoning_smoke.jsonl
 ~~~
 
-This small exact-answer score measures the trained language model only; it is not a broad measure of intelligence or generalization. Keep future evaluation data separate from every training dataset. The checkpoint-free symbolic engine is separately checked against the same held-out examples by the unit test `test_reasoning_dataset.py`. You can also run its score report without any model checkpoint:
+This small exact-answer score currently includes 13 held-out examples spanning arithmetic, logic, sequences, percentages, averages, comparisons and ratios. It measures the trained language model only; it is not a broad measure of intelligence or generalization. Keep future evaluation data separate from every training dataset. The checkpoint-free symbolic engine is separately checked against the same held-out examples by the unit test `test_reasoning_dataset.py`. You can also run its score report without any model checkpoint:
 
 ## Tests
 
