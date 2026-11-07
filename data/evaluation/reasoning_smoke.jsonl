@@ -1,0 +1,8 @@
+{"prompt":"Một giỏ có 3 túi, mỗi túi có 4 quả cam. Có tất cả bao nhiêu quả cam?","expected":["12"]}
+{"prompt":"Mọi con mèo đều là động vật. Miu là mèo. Miu có phải là động vật không?","expected":["Có"]}
+{"prompt":"Nếu trời mưa thì đường ướt. Đường đang ướt. Có chắc chắn trời mưa không?","expected":["Không"]}
+{"prompt":"Dãy số 2, 4, 8, 16, số tiếp theo là bao nhiêu nếu mỗi lần nhân đôi?","expected":["32"]}
+{"prompt":"Tính 15 trừ 3 nhân 4 theo thứ tự phép tính chuẩn.","expected":["3"]}
+{"prompt":"Có 12 chiếc bánh chia đều cho 3 người. Mỗi người nhận mấy chiếc?","expected":["4"]}
+{"prompt":"Một số chia cho 2 dư 1. Số đó có phải số chẵn không?","expected":["Không"]}
+{"prompt":"Ngày mai là thứ Năm. Hôm nay là thứ mấy?","expected":["Thứ Tư"]}
