@@ -42,6 +42,12 @@ _WEEKDAYS = {
 }
 
 
+def _is_safe_number(value):
+    if type(value) is int:
+        return abs(value) <= 10 ** 100
+    return math.isfinite(value) and abs(value) <= 1e100
+
+
 def _format_number(value):
     if isinstance(value, float) and math.isfinite(value) and value.is_integer():
         return str(int(value))
@@ -53,7 +59,7 @@ def _safe_ast_value(node, steps):
         return _safe_ast_value(node.body, steps)
     if isinstance(node, ast.Constant) and type(node.value) in (int, float):
         value = node.value
-        if not math.isfinite(value) or abs(value) > 1e100:
+        if not _is_safe_number(value):
             raise ValueError("Number is outside the supported range.")
         return value
     if isinstance(node, ast.UnaryOp) and type(node.op) in _UNARY_OPERATORS:
@@ -70,7 +76,7 @@ def _safe_ast_value(node, steps):
         if isinstance(node.op, (ast.Div, ast.FloorDiv, ast.Mod)) and right == 0:
             raise ZeroDivisionError("Cannot divide by zero.")
         result = calculate(left, right)
-        if not math.isfinite(result) or abs(result) > 1e100:
+        if not _is_safe_number(result):
             raise ValueError("Result is outside the supported range.")
         steps.append(
             f"{_format_number(left)} {symbol} {_format_number(right)} "
@@ -396,6 +402,8 @@ def _solve_linear_equation(text):
         if expression.endswith("."):
             expression = expression[:-1].rstrip()
         expression = re.sub(r"(?<=\d)\s*x\b", "*x", expression)
+        expression = re.sub(r"(?<=\d)\s*\(", "*(", expression)
+        expression = re.sub(r"\)\s*(?=\d)", ")*", expression)
         expression = re.sub(r"(?<=\))\s*x\b", "*x", expression)
         expression = re.sub(r"\bx\b", "x", expression)
         if len(expression) > 100:
