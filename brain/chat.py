@@ -93,7 +93,14 @@ def handle_learning_command(agent, question):
             "- Suy luận có kiểm chứng: số học, phương trình bậc nhất, "
             "phần trăm, trung bình, so sánh, tỉ lệ, dãy số, lịch và một số luật logic."
         )
-        print("- Câu hỏi ngoài các mẫu trên cần checkpoint ngôn ngữ đã huấn luyện.")
+        if provider is not None:
+            print("- Câu hỏi mở: chuyển tới mô hình API đã cấu hình.")
+            print("- Lịch sử chat: giữ 6 lượt gần nhất trong RAM; dùng /reset để xóa.")
+        elif agent.model is not None:
+            print("- Câu hỏi mở: chuyển tới checkpoint ngôn ngữ cục bộ.")
+        else:
+            print("- Câu hỏi ngoài các mẫu đã hỗ trợ vẫn cần mô hình ngôn ngữ.")
+
         print(f"- Tìm kiếm web: {web_state}.")
         print(f"- Ghi chú đã dạy: {memory_count}.")
         print(f"- Ví dụ chờ fine-tune: {example_count}.")
@@ -101,6 +108,13 @@ def handle_learning_command(agent, question):
             print("- Viết mã: chưa có mô hình ngôn ngữ để sinh mã tổng quát.")
         else:
             print("- Viết mã: mô hình có thể tạo mã; chưa có sandbox thực thi hoặc kiểm thử tự động.")
+        return True
+
+    if question == "/reset":
+        history = getattr(agent, "conversation_history", None)
+        if history is not None:
+            history.clear()
+        print("Đã xóa ngữ cảnh hội thoại đang giữ trong RAM.")
         return True
 
     if question == "/doctor":
@@ -114,6 +128,7 @@ def handle_learning_command(agent, question):
     if question in {"/help", "help"}:
         print("Các lệnh GKC-AI:")
         print("- /status: xem năng lực hiện tại.")
+        print("- /reset: xóa ngữ cảnh hội thoại hiện tại.")
         print("- /doctor: kiểm tra môi trường và các thành phần đã sẵn sàng.")
         print("- /teach Chủ đề | Nội dung | Nguồn: lưu ghi chú.")
         print("- /example Câu hỏi | Câu trả lời: lưu ví dụ cho lần fine-tune sau.")
@@ -199,7 +214,7 @@ def main():
             print_response(agent.reply(args.question, args.max_new_tokens))
         return
 
-    print("Lệnh: /status, /doctor, /help, /teach Chủ đề | Nội dung | Nguồn, /example Câu hỏi | Câu trả lời")
+    print("Lệnh: /status, /doctor, /help, /reset, /teach Chủ đề | Nội dung | Nguồn, /example Câu hỏi | Câu trả lời")
     while True:
         try:
             question = input("\nBạn: ").strip()
