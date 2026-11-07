@@ -10,6 +10,7 @@ from brain.agent import ResearchAgent
 from brain.knowledge import KnowledgeBase
 from brain.llm import OpenAICompatibleProvider
 from brain.chat import handle_learning_command
+from brain.doctor import run_diagnostics
 
 
 class FakeProvider:
@@ -24,6 +25,25 @@ class FakeProvider:
 
 
 class LLMProviderTests(unittest.TestCase):
+    def test_doctor_recognizes_configured_external_model_without_network_call(self):
+        values = {
+            "GKC_AI_MODEL": "local-test-model",
+            "GKC_AI_BASE_URL": "http://127.0.0.1:11434/v1",
+            "GKC_AI_API_KEY": "",
+        }
+        with tempfile.TemporaryDirectory() as folder:
+            with patch.dict(os.environ, values, clear=True):
+                checks = run_diagnostics(
+                    checkpoint=str(Path(folder) / "missing.pt"),
+                    corpus_dir=str(Path(folder) / "no-corpus"),
+                    memory_path=str(Path(folder) / "memory.sqlite3"),
+                )
+        model_check = next(
+            check for check in checks
+            if check["name"] == "General language model configured"
+        )
+        self.assertTrue(model_check["ok"])
+
     def test_from_env_returns_none_without_model(self):
         with patch.dict(os.environ, {}, clear=True):
             self.assertIsNone(OpenAICompatibleProvider.from_env())
