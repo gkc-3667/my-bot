@@ -1,0 +1,20 @@
+{"prompt":"Viết chương trình Python hỏi tên người dùng rồi chào họ.","answer":"```python\nname = input(\"Tên bạn là gì? \")\nprint(f\"Xin chào, {name}!\")\n```\n`input()` nhận dữ liệu; f-string chèn tên vào lời chào."}
+{"prompt":"Write a Python function that returns the larger of two numbers.","answer":"```python\ndef maximum(a, b):\n    return a if a > b else b\n```\nIt compares the inputs and returns the larger value."}
+{"prompt":"Sửa lỗi Python: if x = 5: print(x)","answer":"Dùng `==` để so sánh, còn `=` là phép gán:\n```python\nif x == 5:\n    print(x)\n```"}
+{"prompt":"Viết hàm JavaScript tính tổng các số trong mảng.","answer":"```javascript\nfunction sum(numbers) {\n  return numbers.reduce((total, n) => total + n, 0);\n}\n```\n`reduce` cộng dồn từng phần tử."}
+{"prompt":"Explain the difference between a list and a tuple in Python.","answer":"A list is mutable, so you can change its items. A tuple is immutable after creation. Use a list for changing data and a tuple for fixed groups of values."}
+{"prompt":"Giải thích vòng lặp for trong Python bằng ví dụ.","answer":"`for` lặp qua từng phần tử:\n```python\nfor name in [\"An\", \"Bình\"]:\n    print(name)\n```\nMỗi lượt, `name` nhận một giá trị."}
+{"prompt":"What does a Python dictionary do? Give a short example.","answer":"A dictionary stores key-value pairs:\n```python\nperson = {\"name\": \"Mai\", \"age\": 20}\nprint(person[\"name\"])\n```\nThe key `name` retrieves `Mai`."}
+{"prompt":"Viết code kiểm tra một số có phải số chẵn không.","answer":"```python\ndef is_even(number):\n    return number % 2 == 0\n```\nSố chẵn có phần dư 0 khi chia cho 2."}
+{"prompt":"A user asks for code but does not specify the programming language. What should you do?","answer":"Ask one brief clarifying question about the preferred language. If the task is simple, state a reasonable default such as Python and proceed only when that assumption is safe."}
+{"prompt":"How do you debug a program that crashes?","answer":"Read the full error message and traceback, reproduce the problem, identify the failing line, inspect inputs and state, make one small fix, then run a test that reproduces the bug."}
+{"prompt":"Viết một test đơn giản cho hàm cộng Python.","answer":"```python\ndef add(a, b):\n    return a + b\n\nassert add(2, 3) == 5\n```\n`assert` báo lỗi nếu kết quả không đúng."}
+{"prompt":"What is the difference between == and = in Python?","answer":"`=` assigns a value to a variable. `==` compares two values and produces `True` or `False`."}
+{"prompt":"Translate into English: Tôi đang học lập trình và muốn viết một ứng dụng.","answer":"I am learning programming and want to build an application."}
+{"prompt":"Answer in English: What did you do yesterday?","answer":"Yesterday, I studied programming and practiced writing a small Python script."}
+{"prompt":"Explain the word 'because' and use it in a sentence.","answer":"'Because' introduces a reason. Example: I stayed home because it was raining."}
+{"prompt":"Hãy giới thiệu bản thân bằng tiếng Anh trong hai câu.","answer":"Hello! I am GKC-AI, an assistant that helps with learning, programming, and problem-solving. I will try to give clear and honest answers."}
+{"prompt":"If you do not understand an English question, how should you respond?","answer":"Politely say which part is unclear and ask one specific question. Do not invent the meaning; offer a translation if that would help."}
+{"prompt":"Write a JavaScript function that checks whether a number is even.","answer":"```javascript\nfunction isEven(n) {\n  return n % 2 === 0;\n}\n```\nThe remainder operator checks divisibility by two."}
+{"prompt":"Giải thích lỗi IndexError trong Python.","answer":"`IndexError` xảy ra khi truy cập vị trí không tồn tại trong danh sách hoặc chuỗi. Kiểm tra độ dài bằng `len(items)` và bảo đảm chỉ số nằm trong khoảng hợp lệ."}
+{"prompt":"How should an assistant explain code it has written?","answer":"Describe what the code does, explain important lines, state assumptions, show how to run it, and include a small test. Never claim the code was executed unless it actually was."}
