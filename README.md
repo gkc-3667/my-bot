@@ -11,7 +11,7 @@ The repository does not use pretrained model weights.
 - [x] Response-only supervised instruction tuning
 - [x] Small Vietnamese reasoning-example seed for pipeline testing
 - [x] Staged assistant orchestration: plan, research, retrieve, draft, self-review, answer
-- [x] Deterministic symbolic reasoning for arithmetic, percentages, averages, comparisons, word problems, linear equations, syllogisms, conditionals, multi-step rule chains, sequences, parity and weekday logic
+- [x] Deterministic symbolic reasoning for arithmetic, percentages, averages, comparisons, ratio partitions, word problems, linear equations, syllogisms, conditionals, multi-step rule chains, sequences, parity and weekday logic
 - [x] Local diagnostics for checkpoint, training data, PyTorch, web search, memory and reasoning readiness
 - [x] Checkable derivation steps and checkpoint-free reasoning/evidence-only chat mode
 - [x] Optional live web search through the ddgs search library
@@ -46,7 +46,7 @@ brain/
   generate.py      # safe checkpoint loading and EOS-aware generation
   agent.py         # staged plan -> web -> memory -> draft -> review -> answer
   reasoning.py     # deterministic reasoning, conditional chains and checkable derivations
-  reasoning_extra.py # percentage, average and comparison solvers
+  reasoning_extra.py # percentage, average, comparison and ratio solvers
   doctor.py        # inspect model readiness and local capabilities
   research.py      # optional live web-search adapter
   knowledge.py     # persistent retrieval memory and curated SFT examples
@@ -133,7 +133,7 @@ Pass only datasets that exist. The data argument accepts one or more JSONL files
 
 ## Teach TKC-AI
 
-During chat, use `/status` to inspect actual capabilities, `/help` to list commands, `/teach Chủ đề | Nội dung | Nguồn` to save a fact with provenance, or `/example Câu hỏi | Câu trả lời đã kiểm chứng` to save a reviewed training pair. The CLI commands below provide the same functionality.
+During chat, use `/status` to inspect actual capabilities, `/doctor` to diagnose local readiness, `/help` to list commands, `/teach Chủ đề | Nội dung | Nguồn` to save a fact with provenance, or `/example Câu hỏi | Câu trả lời đã kiểm chứng` to save a reviewed training pair. The CLI commands below provide the same functionality.
 
 A fact or lesson can be saved to retrieval memory:
 
