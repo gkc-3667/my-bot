@@ -7,3 +7,8 @@
 {"prompt":"Một số chia cho 2 dư 1. Số đó có phải số chẵn không?","expected":["Không"]}
 {"prompt":"Ngày mai là thứ Năm. Hôm nay là thứ mấy?","expected":["Thứ Tư"]}
 {"prompt":"Nếu trời mưa thì đường ướt. Nếu đường ướt thì xe dễ trượt. Trời mưa. Có thể kết luận gì?","expected":["xe dễ trượt"]}
+{"prompt":"Tính 15% của 240.","expected":["15% của 240 là 36"]}
+{"prompt":"Tính trung bình cộng của 4, 6, 8.","expected":["Giá trị trung bình là 6"]}
+{"prompt":"Chia 60 theo tỉ lệ 2:3.","expected":["Hai phần lần lượt là 24 và 36"]}
+{"prompt":"So sánh 17 và 23.","expected":["23 lớn hơn 17"]}
+{"prompt":"Từ 80 lên 100 tăng bao nhiêu phần trăm?","expected":["Giá trị đã tăng 25%"]}
