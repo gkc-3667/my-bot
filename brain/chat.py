@@ -1,4 +1,4 @@
-"""Interactive chat entry point for TKC-AI, including pretraining fallback."""
+"""Interactive chat entry point for GKC-AI, including pretraining fallback."""
 import argparse
 from pathlib import Path
 
@@ -77,7 +77,7 @@ def handle_learning_command(agent, question):
                 1 for line in example_path.read_text(encoding="utf-8").splitlines()
                 if line.strip()
             )
-        print("\nTrạng thái TKC-AI:")
+        print("\nTrạng thái GKC-AI:")
         print(f"- Mô hình ngôn ngữ: {checkpoint_state}.")
         print("- Suy luận quy tắc: đang bật cho các dạng có dữ kiện kiểm chứng được.")
         print(
@@ -96,14 +96,14 @@ def handle_learning_command(agent, question):
 
     if question == "/doctor":
         from brain.doctor import run_diagnostics
-        print("\nChẩn đoán TKC-AI:")
+        print("\nChẩn đoán GKC-AI:")
         for check in run_diagnostics():
             status = "OK" if check["ok"] else "NOT READY"
             print(f"- [{status}] {check['name']}: {check['detail']}")
         return True
 
     if question in {"/help", "help"}:
-        print("Các lệnh TKC-AI:")
+        print("Các lệnh GKC-AI:")
         print("- /status: xem năng lực hiện tại.")
         print("- /doctor: kiểm tra môi trường và các thành phần đã sẵn sàng.")
         print("- /teach Chủ đề | Nội dung | Nguồn: lưu ghi chú.")
@@ -149,11 +149,11 @@ def print_response(response):
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Chat with TKC-AI using symbolic reasoning, web search and learned memory."
+        description="Chat with GKC-AI using symbolic reasoning, web search and learned memory."
     )
     parser.add_argument(
         "--checkpoint",
-        default="checkpoints/tkc_ai_instruct.pt",
+        default="checkpoints/gkc_ai_instruct.pt",
         help="A checkpoint trained by this project. Missing checkpoint enables tool-only mode.",
     )
     parser.add_argument(
@@ -174,12 +174,12 @@ def main():
 
     if agent.model is None:
         print(
-            "TKC-AI đang chạy chế độ suy luận quy tắc + bộ nhớ + tra cứu web. "
+            "GKC-AI đang chạy chế độ suy luận quy tắc + bộ nhớ + tra cứu web. "
             "Chưa có checkpoint ngôn ngữ đã huấn luyện; các câu hỏi tổng quát "
             "sẽ được báo rõ là ngoài khả năng hiện tại."
         )
     else:
-        print("TKC-AI đã nạp checkpoint. Có thể nhập câu hỏi hoặc gõ 'thoát'.")
+        print("GKC-AI đã nạp checkpoint. Có thể nhập câu hỏi hoặc gõ 'thoát'.")
 
     if args.question:
         if not handle_learning_command(agent, args.question):
@@ -194,7 +194,7 @@ def main():
             print("\nĐã kết thúc.")
             break
         if question.casefold() in {"thoát", "exit", "quit"}:
-            print("TKC-AI: Tạm biệt.")
+            print("GKC-AI: Tạm biệt.")
             break
         if not question:
             continue
@@ -203,7 +203,7 @@ def main():
         try:
             print_response(agent.reply(question, args.max_new_tokens))
         except Exception as error:
-            print(f"TKC-AI gặp lỗi: {type(error).__name__}: {error}")
+            print(f"GKC-AI gặp lỗi: {type(error).__name__}: {error}")
 
 
 if __name__ == "__main__":
