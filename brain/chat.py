@@ -79,7 +79,11 @@ def handle_learning_command(agent, question):
             )
         print("\nTrạng thái TKC-AI:")
         print(f"- Mô hình ngôn ngữ: {checkpoint_state}.")
-        print("- Suy luận quy tắc: đang bật; chỉ giải các dạng đã hỗ trợ.")
+        print(
+            "- Suy luận có kiểm chứng: số học, phương trình bậc nhất, "
+            "phần trăm, trung bình, so sánh, tỉ lệ, dãy số, lịch và một số luật logic."
+        )
+        print("- Câu hỏi ngoài các mẫu trên cần checkpoint ngôn ngữ đã huấn luyện.")
         print(f"- Tìm kiếm web: {web_state}.")
         print(f"- Ghi chú đã dạy: {memory_count}.")
         print(f"- Ví dụ chờ fine-tune: {example_count}.")
@@ -89,9 +93,18 @@ def handle_learning_command(agent, question):
             print("- Viết mã: mô hình có thể tạo mã; chưa có sandbox thực thi hoặc kiểm thử tự động.")
         return True
 
+    if question == "/doctor":
+        from brain.doctor import run_diagnostics
+        print("\nChẩn đoán TKC-AI:")
+        for check in run_diagnostics():
+            status = "OK" if check["ok"] else "NOT READY"
+            print(f"- [{status}] {check['name']}: {check['detail']}")
+        return True
+
     if question in {"/help", "help"}:
         print("Các lệnh TKC-AI:")
         print("- /status: xem năng lực hiện tại.")
+        print("- /doctor: kiểm tra môi trường và các thành phần đã sẵn sàng.")
         print("- /teach Chủ đề | Nội dung | Nguồn: lưu ghi chú.")
         print("- /example Câu hỏi | Câu trả lời: lưu ví dụ cho lần fine-tune sau.")
         print("- thoát: kết thúc chat.")
@@ -172,7 +185,7 @@ def main():
             print_response(agent.reply(args.question, args.max_new_tokens))
         return
 
-    print("Lệnh: /status, /help, /teach Chủ đề | Nội dung | Nguồn, /example Câu hỏi | Câu trả lời")
+    print("Lệnh: /status, /doctor, /help, /teach Chủ đề | Nội dung | Nguồn, /example Câu hỏi | Câu trả lời")
     while True:
         try:
             question = input("\nBạn: ").strip()
