@@ -1,2 +1,3 @@
 # Install a PyTorch build appropriate for your CPU/GPU from https://pytorch.org/get-started/locally/
 torch>=2.2
+ddgs>=9.16,<10
