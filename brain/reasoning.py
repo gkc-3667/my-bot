@@ -308,10 +308,19 @@ def _solve_conditional(text):
     # Inspect the first statement after the conditional, not the repeated
     # consequent in the conditional premise itself.
     remainder = normalized[match.end():].strip()
-    observation = re.split(r"[.!?;\n]+", remainder, maxsplit=1)[0].strip()
-    if not observation or observation.startswith(
-        ("có phải", "có chắc", "liệu", "có thể kết luận")
-    ):
+    observation_parts = re.split(r"[.!?;\n]+", remainder, maxsplit=1)
+    observation = observation_parts[0].strip()
+    follow_up = observation_parts[1].strip() if len(observation_parts) > 1 else ""
+    if not observation:
+        return None
+    asks_for_inference = any(
+        phrase in follow_up
+        for phrase in (
+            "có chắc", "có thể kết luận", "có suy ra", "có kết luận",
+            "liệu", "có phải",
+        )
+    )
+    if not asks_for_inference:
         return None
     observation_words = re.findall(r"[\wÀ-ỹ]+", observation)
     if not all(term in observation_words for term in consequent_terms):
