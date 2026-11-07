@@ -84,6 +84,13 @@ class LogicReasoningTests(unittest.TestCase):
         self.assertIsNotNone(result)
         self.assertIn("không xảy ra", result.answer)
 
+    def test_parity_from_remainder(self):
+        result = solve_question(
+            "Một số chia cho 2 dư 1. Số đó có phải số chẵn không?"
+        )
+        self.assertIsNotNone(result)
+        self.assertTrue(result.answer.startswith("Không."))
+
 
 class PatternReasoningTests(unittest.TestCase):
     def test_geometric_sequence(self):
