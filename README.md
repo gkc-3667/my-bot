@@ -149,6 +149,33 @@ python -m brain.teach --prompt "Python dùng gì để xác định khối lện
 
 Important: a saved fact is retrieved as external memory; it does not change model weights. The `/status` command reports whether a checkpoint is loaded, whether web search is configured, and how many notes and supervised examples are stored. A saved Q&A example changes model behavior only after it is included in a later SFT run. Review answers and sources before teaching them.
 
+## Connect a capable language model (recommended)
+
+The experimental Transformer in this repository is not trained enough for general
+conversation. GKC-AI can instead use any service that implements the OpenAI-compatible
+`/v1/chat/completions` API. This includes hosted model providers and local inference
+servers. This is an inference connection, not a claim that the repository's scratch
+Transformer has learned those capabilities.
+
+Configure these process environment variables (never commit real credentials):
+
+- `GKC_AI_MODEL`: required model identifier, for example the model name shown by your provider.
+- `GKC_AI_API_KEY`: provider API key; optional for local servers that do not require authentication.
+- `GKC_AI_BASE_URL`: API base URL; defaults to `https://api.openai.com/v1`.
+- `GKC_AI_TIMEOUT`: request timeout in seconds; defaults to `45` and is capped at `300`.
+
+When `GKC_AI_MODEL` is set, the API-compatible model is preferred over the
+experimental local checkpoint for open-ended conversation. GKC-AI sends a Vietnamese-first
+system instruction, the recent conversation turns, relevant user-taught notes, and retrieved
+web excerpts. The deterministic math/logic solver still runs first for questions it can
+prove. Conversation history currently lives in process memory and resets when the chat
+process restarts. The API key is read from the environment and is not written to the database.
+
+The provider client uses Python's standard library; no additional package is required.
+Only use an endpoint and model you are authorized to access. A successful connection does
+not guarantee correct answers: evaluate factuality, reasoning, latency, cost, and safety
+before exposing the bot to other users.
+
 ## Chat with the staged agent
 
 Chat can also start before a trained checkpoint exists:
