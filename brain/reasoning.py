@@ -244,7 +244,7 @@ def _solve_syllogism(text):
         if match:
             universal = tuple(part.strip() for part in match.groups())
             continue
-        match = re.search(r"^([\wÀ-ỹ]+)\s+là\s+(.+)$", statement.strip())
+        match = re.search(r"^(.+?)\s+là\s+(.+)$", statement.strip())
         if match:
             identity = tuple(part.strip() for part in match.groups())
 
@@ -258,7 +258,7 @@ def _solve_syllogism(text):
         return None
 
     question_match = re.search(
-        r"([\wÀ-ỹ]+)\s+có\s+phải\s+là\s+(.+?)\s+không",
+        r"(.+?)\s+có\s+phải\s+là\s+(.+?)\s+không",
         text.casefold(),
     )
     if not question_match:
